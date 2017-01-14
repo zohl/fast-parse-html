@@ -1,0 +1,22 @@
+{
+  "name": "fast-parse-html",
+  "version": "0.0.1",
+  "description": "Lightweight platform-independent forgiving html parser",
+  "main": "lib/index.js",
+  "scripts": {
+    "prepublish": "./scripts/prepublish.sh",
+    "test": "./scripts/test.sh",
+    "docs": "./scripts/docs.sh",
+    "benchmark": "./scripts/benchmark.sh"
+  },
+  "author": "Al Zohali",
+  "license": "MIT",
+  "devDependencies": {
+    "babel-cli": "^6.18.0",
+    "babel-core": "^6.21.0",
+    "babel-preset-es2015": "^6.18.0",
+    "documentation": "^4.0.0-beta.17",
+    "htmlparser-benchmark": "^1.1.3",
+    "mocha": "^3.2.0"
+  }
+}
