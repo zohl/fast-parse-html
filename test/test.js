@@ -105,7 +105,33 @@ describe('parseHTML', () => {
 
 
   it('works with script tags', () => {
-    // TODO
+    var roundTrip = script => {
+      var html = '<script>' + script + '</script>';
+      var result = parseHTML(html);
+      assert.ok(!(result instanceof Error), result.message);
+      assert.deepEqual({name: 'script', props: {}, children: [script]}, result);
+      assert.equal(html, renderHTML(false)(result));
+    };
+
+    [ `
+      var foo = 123;
+      `
+    , `
+        /* <p>this is a comment</p> */
+      `
+    , `
+        /* </script> still being a comment */
+      `
+    , `
+        // </script> still being a comment
+      `
+    , `
+      var bar = '</script>';
+      `
+    , `
+      var baz = "</script>";
+      `]
+    .map(roundTrip);
   });
 });
 

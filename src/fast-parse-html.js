@@ -12,6 +12,7 @@ const code_apos = "'".charCodeAt(0);
 const code_slash = '/'.charCodeAt(0);
 const code_back_slash = '\\'.charCodeAt(0);
 const code_asterisk = '*'.charCodeAt(0);
+const code_newline = '\n'.charCodeAt(0);
 
 const isSpace = c => (c == code_space);
 const isNotSpace = c => !isSpace(c);
@@ -20,7 +21,9 @@ const isAlpha = c => (code_a <= c  && c <= code_z) || (code_A <= c && c <= code_
 const isNotTextSpecific = c => (c != code_lt && c != code_gt);
 const isNotEndOfComment = c => (c != code_gt && c != code_hyphen);
 const isNotStyleSpecific = c => (c != code_lt && c != code_quot && c != code_apos && c != code_slash);
+const isNotScriptSpecific = c => (c != code_lt && c != code_quot && c != code_apos && c != code_slash);
 const isNotCStyleCommentSpecific = c => (c != code_asterisk);
+const isNotCPPStyleCommentSpecific = c => (c != code_newline);
 const isNotStringSpecific = q => c => (c != q && c != code_back_slash);
 
 
@@ -197,6 +200,23 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
   };
 
 
+  const readCPPStyleComment = () => {
+    var result = '';
+    while (hasInput()) {
+      result += takeWhile(isNotCPPStyleCommentSpecific);
+
+      if (readChar('\n')) {
+        break;
+      }
+      else {
+        result += readChar();
+      }
+    }
+
+    return result;
+  };
+
+
   const readString = c => {
     var result = '';
 
@@ -274,6 +294,62 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
   };
 
 
+  const readScript = () => {
+
+    skipWhile(isSpace);
+
+    if (!tryChar('>')) {
+      setError('readScript', 'expected end of the tag');
+      return;
+    }
+
+    var contents = '';
+
+    while (hasInput()) {
+      contents += takeWhile(isNotScriptSpecific);
+
+      if (!hasInput()) {
+        setError('readScript', 'unexpected end of file');
+        return;
+      }
+
+      if (tryString('</script>')) {
+        break;
+      }
+
+      if (tryString('/*')) {
+        let comment = readCStyleComment();
+        if (null !== error) {
+          return;
+        }
+        contents += '/*' + comment + '*/';
+      }
+      else if (tryString('//')) {
+        contents += '//' + readCPPStyleComment() + '\n';
+      }
+      else {
+        let c = s.charAt(pos);
+        if (tryChar('"') || tryChar("'")) {
+
+          let string = readString(c);
+          if (null !== error) {
+            return;
+          }
+
+          contents += c + string + c;
+        }
+        else {
+          contents += readChar();
+        }
+      }
+    }
+
+    onOpenTag('script', {});
+    onText(contents);
+    onCloseTag('script');
+  };
+
+
   var prevPos = -1;
 
   while (hasInput()) {
@@ -303,6 +379,9 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
       else {
         if (tryString('style')) {
           readStyle();
+        }
+        else if (tryString('script')) {
+          readScript();
         }
         else {
           readOpenTag();
