@@ -85,12 +85,53 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
 
   const readChar = () => s.charAt(pos++);
 
-  const readOpenTag = () => {
+  const readProps = () => {
+    var result = {};
 
-    var name = takeWhile(isAlpha);
+    while (hasInput()) {
+      skipWhile(isSpace);
+      if (isAlpha(s.charCodeAt(pos))) {
+        let name = takeWhile(isAlpha);
+        skipWhile(isSpace);
+
+        if (tryChar('=')) {
+          skipWhile(isSpace);
+
+          let c = s.charAt(pos);
+          if (tryChar('"') || tryChar("'")) {
+
+            let string = readString(c);
+            if (null !== error) {
+              return;
+            }
+            result[name] = string;
+          }
+          else {
+            result[name] = takeWhile(isNotSpace);
+          }
+        }
+        else {
+          result[name] = true;
+        }
+        skipWhile(isSpace);
+      }
+      else {
+        break;
+      }
+    }
+
+    return result;
+  };
+
+  const readOpenTag = (tagName) => {
+
+    var name = tagName || takeWhile(isAlpha);
     if (!name.length) {
       setError('readOpenTag', 'empty name');
+      return;
     }
+
+    var props = readProps();
     skipWhile(isSpace);
 
     if (!tryChar('>')) {
@@ -98,7 +139,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
       return;
     }
 
-    onOpenTag(name, {});
+    onOpenTag(name, props);
   };
 
   const readCloseTag = () => {
@@ -243,12 +284,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
 
   const readStyle = () => {
 
-    skipWhile(isSpace);
-
-    if (!tryChar('>')) {
-      setError('readStyle', 'expected end of the tag');
-      return;
-    }
+    readOpenTag('style');
 
     var contents = '';
 
@@ -288,7 +324,6 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
       }
     }
 
-    onOpenTag('style', {});
     onText(contents);
     onCloseTag('style');
   };
@@ -296,12 +331,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
 
   const readScript = () => {
 
-    skipWhile(isSpace);
-
-    if (!tryChar('>')) {
-      setError('readScript', 'expected end of the tag');
-      return;
-    }
+    readOpenTag('script');
 
     var contents = '';
 
@@ -344,7 +374,6 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
       }
     }
 
-    onOpenTag('script', {});
     onText(contents);
     onCloseTag('script');
   };
@@ -462,7 +491,6 @@ const parseHTML = s => {
     return output;
   }
 
-  // console.log('result', result);
   return result[0];
 };
 

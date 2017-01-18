@@ -133,5 +133,31 @@ describe('parseHTML', () => {
       `]
     .map(roundTrip);
   });
+
+
+  it('works with props', () => {
+    var roundTrip = (html, props) => {
+      var result = parseHTML(html);
+      assert.ok(!(result instanceof Error), result.message);
+      assert.deepEqual(result.props, props);
+    };
+
+    roundTrip(`<div foo = '42' bar = "bar" baz = ""></div>`, {
+      foo: '42', bar: 'bar', baz: ''
+    });
+
+    roundTrip(`<input type = "checkbox" checked></div>`, {
+      type: "checkbox"
+    , checked: true
+    });
+
+    roundTrip(`<style type = "text/css"></style>`, {
+      type: "text/css"
+    });
+
+    roundTrip(`<script type = "text/javascript"></script>`, {
+      type: "text/javascript"
+    });
+  });
 });
 
