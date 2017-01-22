@@ -13,10 +13,18 @@ const code_slash = '/'.charCodeAt(0);
 const code_back_slash = '\\'.charCodeAt(0);
 const code_asterisk = '*'.charCodeAt(0);
 const code_newline = '\n'.charCodeAt(0);
+const code_cr = '\r'.charCodeAt(0);
+const code_tab = '\t'.charCodeAt(0);
+const code_colon = ':'.charCodeAt(0);
+const code_0 = '0'.charCodeAt(0);
+const code_9 = '9'.charCodeAt(0);
 
-const isSpace = c => (c == code_space);
+const isSpace = c => (c == code_space || c == code_newline || c == code_cr || c == code_tab);
 const isNotSpace = c => !isSpace(c);
 const isAlpha = c => (code_a <= c  && c <= code_z) || (code_A <= c && c <= code_z);
+const isNumber = c => (code_0 <= c && c <= code_9);
+const isIdentificator = c => isAlpha(c) || isNumber(c)
+   || (c == code_hyphen) || (c == code_colon);
 
 const isNotTextSpecific = c => (c != code_lt && c != code_gt);
 const isNotEndOfComment = c => (c != code_gt && c != code_hyphen);
@@ -83,7 +91,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
   };
 
 
-  const readChar = () => s.charAt(pos++);
+  const readChar = p => (!p || p(s.charCodeAt(pos))) ? s.charAt(pos++) : '';
 
   const readProps = () => {
     var result = {};
@@ -91,7 +99,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
     while (hasInput()) {
       skipWhile(isSpace);
       if (isAlpha(s.charCodeAt(pos))) {
-        let name = takeWhile(isAlpha);
+        let name = takeWhile(isIdentificator);
         skipWhile(isSpace);
 
         if (tryChar('=')) {
@@ -125,7 +133,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
 
   const readOpenTag = (tagName) => {
 
-    var name = tagName || takeWhile(isAlpha);
+    var name = tagName || readChar(isAlpha) + takeWhile(isIdentificator);
     if (!name.length) {
       setError('readOpenTag', 'empty name');
       return;
@@ -134,17 +142,22 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
     var props = readProps();
     skipWhile(isSpace);
 
-    if (!tryChar('>')) {
+    if (tryChar('>')) {
+      onOpenTag(name, props);
+    }
+    else if (tryString('/>')) {
+      onOpenTag(name, props);
+      onCloseTag(name);
+    }
+    else {
       setError('readOpenTag', 'unexpected end of the tag');
       return;
     }
-
-    onOpenTag(name, props);
   };
 
   const readCloseTag = () => {
 
-    var name = takeWhile(isAlpha);
+    var name = readChar(isAlpha) + takeWhile(isIdentificator);
 
     skipWhile(isSpace);
     if (!tryChar('>')) {
@@ -246,7 +259,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
     while (hasInput()) {
       result += takeWhile(isNotCPPStyleCommentSpecific);
 
-      if (readChar('\n')) {
+      if (tryChar('\n')) {
         break;
       }
       else {
