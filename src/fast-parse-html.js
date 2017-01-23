@@ -10,7 +10,7 @@ const code_hyphen = '-'.charCodeAt(0);
 const code_quot = '"'.charCodeAt(0);
 const code_apos = "'".charCodeAt(0);
 const code_slash = '/'.charCodeAt(0);
-const code_back_slash = '\\'.charCodeAt(0);
+const code_backslash = '\\'.charCodeAt(0);
 const code_asterisk = '*'.charCodeAt(0);
 const code_newline = '\n'.charCodeAt(0);
 const code_cr = '\r'.charCodeAt(0);
@@ -18,6 +18,8 @@ const code_tab = '\t'.charCodeAt(0);
 const code_colon = ':'.charCodeAt(0);
 const code_0 = '0'.charCodeAt(0);
 const code_9 = '9'.charCodeAt(0);
+const code_bang = '!'.charCodeAt(0);
+const code_equal = '='.charCodeAt(0);
 
 const isSpace = c => (c == code_space || c == code_newline || c == code_cr || c == code_tab);
 const isNotSpace = c => !isSpace(c);
@@ -32,7 +34,7 @@ const isNotStyleSpecific = c => (c != code_lt && c != code_quot && c != code_apo
 const isNotScriptSpecific = c => (c != code_lt && c != code_quot && c != code_apos && c != code_slash);
 const isNotCStyleCommentSpecific = c => (c != code_asterisk);
 const isNotCPPStyleCommentSpecific = c => (c != code_newline);
-const isNotStringSpecific = q => c => (c != q && c != code_back_slash);
+const isNotStringSpecific = q => c => (c != q && c != code_backslash);
 
 
 /** Parse given HTML text using event-based approach.
@@ -58,24 +60,25 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
     error = new Error(fname + ' failed at position ' + pos + ', ' + message);
   };
 
-  const hasInput = () => (pos < len);
-
   const skipWhile = p => {
-    while (hasInput() && p(s.charCodeAt(pos))) {
+    while ((pos < len) && p(s.charCodeAt(pos))) {
       ++pos;
     }
   };
 
   const takeWhile = p => {
     var oldPos = pos;
-    skipWhile(p);
+    while ((pos < len) && p(s.charCodeAt(pos))) {
+      ++pos;
+    }
+    // skipWhile(p);
     return s.substring(oldPos, pos);
   };
 
 
   const tryChar = c => {
 
-    if (c == s.charAt(pos)) {
+    if (c == s.charCodeAt(pos)) {
       ++pos;
       return true;
     }
@@ -83,11 +86,13 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
   };
 
   const tryString = t => {
-    if (s.substring(pos).startsWith(t)) {
-      pos += t.length;
-      return true;
+    for (let q = 0; q < t.length; ++q) {
+      if (s.charCodeAt(pos + q) != t.charCodeAt(q)) {
+        return false;
+      }
     }
-    return false;
+    pos += t.length;
+    return true;
   };
 
 
@@ -96,17 +101,17 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
   const readProps = () => {
     var result = {};
 
-    while (hasInput()) {
+    while (pos < len) {
       skipWhile(isSpace);
       if (isAlpha(s.charCodeAt(pos))) {
         let name = takeWhile(isIdentificator);
         skipWhile(isSpace);
 
-        if (tryChar('=')) {
+        if (tryChar(code_equal)) {
           skipWhile(isSpace);
 
-          let c = s.charAt(pos);
-          if (tryChar('"') || tryChar("'")) {
+          let c = s.charCodeAt(pos);
+          if (tryChar(code_quot) || tryChar(code_apos)) {
 
             let string = readString(c);
             if (null !== error) {
@@ -142,7 +147,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
     var props = readProps();
     skipWhile(isSpace);
 
-    if (tryChar('>')) {
+    if (tryChar(code_gt)) {
       onOpenTag(name, props);
     }
     else if (tryString('/>')) {
@@ -160,7 +165,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
     var name = readChar(isAlpha) + takeWhile(isIdentificator);
 
     skipWhile(isSpace);
-    if (!tryChar('>')) {
+    if (!tryChar(code_gt)) {
       setError('readCloseTag', 'unexpected end of the tag');
       return;
     }
@@ -192,7 +197,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
     var contents = takeWhile(isNotTextSpecific);
     skipWhile(isSpace);
 
-    if (!tryChar('>')) {
+    if (!tryChar(code_gt)) {
       setError('readDocType', 'expected end of the pseudo tag');
       return;
     }
@@ -204,17 +209,17 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
 
 
   const readComment = () => {
-    if (!tryChar('-')) {
+    if (!tryChar(code_hyphen)) {
       setError('readComment', 'expected hyphen');
       return;
     }
 
     var contents = '';
 
-    while (hasInput()) {
+    while (pos < len) {
       contents += takeWhile(isNotEndOfComment);
 
-      if (!hasInput()) {
+      if (!(pos < len)) {
         setError('readComment', 'unexpected end of file');
         return;
       }
@@ -235,10 +240,10 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
   const readCStyleComment = () => {
     var result = '';
 
-    while (hasInput()) {
+    while (pos < len) {
       result += takeWhile(isNotCStyleCommentSpecific);
 
-      if (!hasInput()) {
+      if (!(pos < len)) {
         setError('readCStyleComment', 'unexpected end of file');
         return;
       }
@@ -256,10 +261,10 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
 
   const readCPPStyleComment = () => {
     var result = '';
-    while (hasInput()) {
+    while (pos < len) {
       result += takeWhile(isNotCPPStyleCommentSpecific);
 
-      if (tryChar('\n')) {
+      if (tryChar(code_newline)) {
         break;
       }
       else {
@@ -274,9 +279,9 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
   const readString = c => {
     var result = '';
 
-    while (hasInput()) {
-      result += takeWhile(isNotStringSpecific(c.charCodeAt(0)));
-      if (!hasInput()) {
+    while (pos < len) {
+      result += takeWhile(isNotStringSpecific(c));
+      if (!(pos < len)) {
         setError('readString', 'unexpected end of file');
         return;
       }
@@ -285,7 +290,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
         break;
       }
 
-      if (tryChar('\\')) {
+      if (tryChar(code_backslash)) {
         result += '\\';
       }
 
@@ -301,10 +306,10 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
 
     var contents = '';
 
-    while (hasInput()) {
+    while (pos < len) {
       contents += takeWhile(isNotStyleSpecific);
 
-      if (!hasInput()) {
+      if (!(pos < len)) {
         setError('readStyle', 'unexpected end of file');
         return;
       }
@@ -322,9 +327,9 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
       }
       else {
         let c = s.charAt(pos);
-        if (tryChar('"') || tryChar("'")) {
+        if (tryChar(code_quot) || tryChar(code_apos)) {
 
-          let string = readString(c);
+          let string = readString(c.charCodeAt(0));
           if (null !== error) {
             return;
           }
@@ -348,10 +353,10 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
 
     var contents = '';
 
-    while (hasInput()) {
+    while (pos < len) {
       contents += takeWhile(isNotScriptSpecific);
 
-      if (!hasInput()) {
+      if (!(pos < len)) {
         setError('readScript', 'unexpected end of file');
         return;
       }
@@ -372,9 +377,9 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
       }
       else {
         let c = s.charAt(pos);
-        if (tryChar('"') || tryChar("'")) {
+        if (tryChar(code_quot) || tryChar(code_apos)) {
 
-          let string = readString(c);
+          let string = readString(c.charCodeAt(0));
           if (null !== error) {
             return;
           }
@@ -394,7 +399,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
 
   var prevPos = -1;
 
-  while (hasInput()) {
+  while (pos < len) {
     if (null !== error) {
       break;
     }
@@ -406,12 +411,12 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
 
     prevPos = pos;
 
-    if (tryChar('<')) {
-      if (tryChar('/')) {
+    if (tryChar(code_lt)) {
+      if (tryChar(code_slash)) {
         readCloseTag();
       }
-      else if (tryChar('!')) {
-        if (tryChar('-')) {
+      else if (tryChar(code_bang)) {
+        if (tryChar(code_hyphen)) {
           readComment();
         }
         else {
