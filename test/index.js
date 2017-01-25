@@ -30,7 +30,6 @@ describe('parseHTML', () => {
     `);
   });
 
-
   it('works with doctype', () => {
 
     var roundTrip = doctype => {

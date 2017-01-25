@@ -67,11 +67,11 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
   };
 
   const takeWhile = p => {
+
     var oldPos = pos;
     while ((pos < len) && p(s.charCodeAt(pos))) {
       ++pos;
     }
-    // skipWhile(p);
     return s.substring(oldPos, pos);
   };
 
