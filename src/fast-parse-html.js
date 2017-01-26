@@ -51,13 +51,21 @@ const isNotStringSpecific = q => c => (c != q && c != code_backslash);
 
    @return {(void|Error)}
 */
-const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
+const genericParseHTML = ({onOpenTag, onCloseTag, onText}, options) => s => {
+  const len = s.length;
+  const strict = (options && undefined !== options.strict) ? options.strict : true;
+
   var pos = 0;
-  var len = s.length;
   var error = null;
 
   const setError = (fname, message) => {
-    error = new Error(fname + ' failed at position ' + pos + ', ' + message);
+    var s1 = s.substring(0, pos);
+    var line = (s1.match(/\n/g) || []).length;
+    var column = (s1.match(/[^\n]*$/)[0] || '').length;
+    error = new Error(
+      fname + ' failed at position (' + line + ', ' + column + '): '
+    + message
+    + '\n\n\n' + s.substring(pos - 100, pos-1) + '||||' + s.substring(pos, pos + 100));
   };
 
   const skipWhile = p => {
@@ -109,18 +117,18 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
 
         if (tryChar(code_equal)) {
           skipWhile(isSpace);
+          result[name] = '';
 
-          let c = s.charCodeAt(pos);
+          let q = s.charCodeAt(pos);
           if (tryChar(code_quot) || tryChar(code_apos)) {
-
-            let string = readString(c);
+            let string = readString(q);
             if (null !== error) {
               return;
             }
             result[name] = string;
           }
           else {
-            result[name] = takeWhile(isNotSpace);
+            result[name] += takeWhile(isAlpha);
           }
         }
         else {
@@ -129,7 +137,18 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
         skipWhile(isSpace);
       }
       else {
-        break;
+        if (strict) {
+          break;
+        }
+        else {
+          if ((code_slash == s.charCodeAt(pos) && code_gt == s.charCodeAt(pos + 1))
+           || (code_gt == s.charCodeAt(pos))) {
+            break;
+          }
+          else {
+            readChar();
+          }
+        }
       }
     }
 
@@ -165,11 +184,17 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
     var name = readChar(isAlpha) + takeWhile(isIdentificator);
 
     skipWhile(isSpace);
-    if (!tryChar(code_gt)) {
-      setError('readCloseTag', 'unexpected end of the tag');
-      return;
+    if (strict) {
+      if (!tryChar(code_gt)) {
+        setError('readCloseTag', 'unexpected end of the tag');
+        return;
+      }
     }
-
+    else {
+      while (pos < len && !tryChar(code_gt)) {
+        readChar();
+      }
+    }
     onCloseTag(name);
   };
 
@@ -454,7 +479,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}) => s => {
 */
 
 
-const parseHTML = s => {
+const parseHTML = (s, options) => {
   var result = [];
   var stack = [];
   var node = null;
@@ -504,7 +529,7 @@ const parseHTML = s => {
   };
 
 
-  var output = genericParseHTML({onOpenTag, onCloseTag, onText})(s);
+  var output = genericParseHTML({onOpenTag, onCloseTag, onText}, options)(s);
   if (output instanceof Error) {
     return output;
   }

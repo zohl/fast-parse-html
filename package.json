@@ -7,7 +7,8 @@
     "prepublish": "./scripts/prepublish.sh",
     "test": "./scripts/test.sh",
     "docs": "./scripts/docs.sh",
-    "benchmark": "./scripts/benchmark.sh"
+    "benchmark-completeness": "./scripts/benchmark-completeness.sh",
+    "benchmark-time": "./scripts/benchmark-time.sh"
   },
   "author": "Al Zohali",
   "license": "MIT",

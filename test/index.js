@@ -141,8 +141,8 @@ describe('parseHTML', () => {
       assert.deepEqual(result.props, props);
     };
 
-    roundTrip(`<div foo = '42' bar = "bar" baz = ""></div>`, {
-      foo: '42', bar: 'bar', baz: ''
+    roundTrip(`<div foo = '42' bar = "bar" baz = qux></div>`, {
+      foo: '42', bar: 'bar', baz: 'qux'
     });
 
     roundTrip(`<input type = "checkbox" checked></div>`, {
@@ -158,5 +158,20 @@ describe('parseHTML', () => {
       type: "text/javascript"
     });
   });
-});
 
+
+  it('works with tricky/broken html snippets', () => {
+
+    var roundTrip = html => {
+      var result = parseHTML(html, {strict: false});
+      assert.ok(!(result instanceof Error), result.message);
+    }
+
+    roundTrip(`<img alt="foo 'bar' "baz""/>`);
+    roundTrip(`<img alt="foo "bar" "baz""/>`);
+
+    roundTrip(`<embed height=267 type=application/x-shockwave-flash pluginspage=http://www.macromedia.com/go/getflashplayer width=400/>`);
+
+    roundTrip(`<ul><li>foobar</li></ul'>`);
+  });
+});

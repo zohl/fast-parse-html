@@ -1,9 +1,19 @@
 var benchmark = require('htmlparser-benchmark');
 var parseHTML = require('../lib/index.js').parseHTML;
 
-var bench = benchmark(function (html, callback) {
-  var result = parseHTML(html);
-  callback((result instanceof Error) ? result : undefined);
+const target = process.argv[2];
+const penalty = 1000;
+
+var bench = benchmark(function(html, callback) {
+  var result = parseHTML(html, {strict: false});
+  var failed = (result instanceof Error);
+
+  if (target == '--completeness') {
+    callback(failed ? result : undefined);
+  }
+  else if (target == '--time') {
+    setTimeout(() => callback(), (failed ? penalty : 0));
+  }
 });
 
 bench.on('progress', function (key) {
@@ -15,5 +25,5 @@ bench.on('result', function (stat) {
 });
 
 bench.on('error', function (err) {
-  console.log(err);
+  console.log(err.message);
 });

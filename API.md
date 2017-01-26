@@ -17,6 +17,7 @@ Parse given HTML text using event-based approach.
     -   `$0.onCloseTag` **[Function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function)** called for each close tag being
         successfully parsed.
     -   `$0.onText` **[Function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function)** called for each text element being parsed.
+-   `options`  
 
 Returns **(void | [Error](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error))** 
 
@@ -27,5 +28,6 @@ Parse given HTML text into ready-to-consume structure.
 **Parameters**
 
 -   `s` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** HTML text.
+-   `options`  
 
 Returns **[Object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)** 
