@@ -5,7 +5,7 @@ const target = process.argv[2];
 const penalty = 1000;
 
 var bench = benchmark(function(html, callback) {
-  var result = parseHTML(html, {strict: false});
+  var result = parseHTML(html, {strict: false, ieTags: true, cdata: true});
   var failed = (result instanceof Error);
 
   if (target == '--completeness') {

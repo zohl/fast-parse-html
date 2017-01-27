@@ -160,18 +160,85 @@ describe('parseHTML', () => {
   });
 
 
+  it('works with CDATA tags', () => {
+
+    var roundTrip = (html, expected) => {
+      var result = parseHTML(html, {cdata: true});
+      assert.ok(undefined !== result, 'result is undefined');
+      assert.ok(!(result instanceof Error), result.message);
+      if (undefined !== expected) {
+        assert.deepEqual(expected, result);
+      }
+    }
+
+    roundTrip(`<textarea><![CDATA[<foo> && <bar> && </textarea>]]></textarea>`, {
+      name: 'textarea'
+    , props: {}
+    , children: [{
+        name: '!CDATA'
+      , props: {}
+      , children:['<foo> && <bar> && </textarea>']
+      }
+    ]});
+  });
+
+
+  it('works with IE-specific pseudo-tags', () => {
+
+    var roundTrip = (html, expected) => {
+      var result = parseHTML(html, {ieTags: true});
+      assert.ok(undefined !== result, 'result is undefined');
+      assert.ok(!(result instanceof Error), result.message);
+      if (undefined !== expected) {
+        assert.deepEqual(expected, result);
+      }
+    }
+
+    roundTrip(`<![if !IE]>non-standard conditional tag<![endif]>`, {
+      name: '!if'
+    , props: {'args': '!IE'}
+    , children: ['non-standard conditional tag']
+    });
+
+    roundTrip(`<![if gt IE 8]>non-standard conditional tag<![endif]>`, {
+      name: '!if'
+    , props: {'args': 'gt IE 8'}
+    , children: ['non-standard conditional tag']
+    });
+  });
+
+
   it('works with tricky/broken html snippets', () => {
 
-    var roundTrip = html => {
+    var roundTrip = (html, expected) => {
       var result = parseHTML(html, {strict: false});
+      assert.ok(undefined !== result, 'result is undefined');
       assert.ok(!(result instanceof Error), result.message);
+      if (undefined !== expected) {
+        assert.deepEqual(expected, result);
+      }
     }
 
     roundTrip(`<img alt="foo 'bar' "baz""/>`);
     roundTrip(`<img alt="foo "bar" "baz""/>`);
 
-    roundTrip(`<embed height=267 type=application/x-shockwave-flash pluginspage=http://www.macromedia.com/go/getflashplayer width=400/>`);
+    roundTrip(`<embed
+      height=267
+      type=application/x-shockwave-flash
+      pluginspage=http://www.macromedia.com/go/getflashplayer width=400
+    />`);
 
-    roundTrip(`<ul><li>foobar</li></ul'>`);
+    roundTrip(`<ul><li>incorrect close tag</li></ul'>`);
+
+    roundTrip(`<p><strong>a typo!<</strong></p>`);
+
+    roundTrip(`<html><script><!-- html comment // js comment --></script></html>`);
+    roundTrip(`< p> wrong position for spaces</ p>`);
+
+    roundTrip(`<script>var s = '/*test'.replace(/\\/*/, '');</script>`, {
+      name: 'script'
+    , props: {}
+    , children: [`var s = '/*test'.replace(/\\/*/, '');`]
+    });
   });
 });

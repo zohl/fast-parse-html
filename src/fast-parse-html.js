@@ -20,6 +20,9 @@ const code_0 = '0'.charCodeAt(0);
 const code_9 = '9'.charCodeAt(0);
 const code_bang = '!'.charCodeAt(0);
 const code_equal = '='.charCodeAt(0);
+const code_left_bracket = '['.charCodeAt(0);
+const code_right_bracket = ']'.charCodeAt(0);
+
 
 const isSpace = c => (c == code_space || c == code_newline || c == code_cr || c == code_tab);
 const isNotSpace = c => !isSpace(c);
@@ -29,13 +32,13 @@ const isIdentificator = c => isAlpha(c) || isNumber(c)
    || (c == code_hyphen) || (c == code_colon);
 
 const isNotTextSpecific = c => (c != code_lt && c != code_gt);
-const isNotEndOfComment = c => (c != code_gt && c != code_hyphen);
+const isNotEndOfComment = c => (c != code_gt && c != code_hyphen && c != code_lt);
 const isNotStyleSpecific = c => (c != code_lt && c != code_quot && c != code_apos && c != code_slash);
 const isNotScriptSpecific = c => (c != code_lt && c != code_quot && c != code_apos && c != code_slash);
 const isNotCStyleCommentSpecific = c => (c != code_asterisk);
 const isNotCPPStyleCommentSpecific = c => (c != code_newline);
 const isNotStringSpecific = q => c => (c != q && c != code_backslash);
-
+const isNotCDATASpecific = c => (c != code_right_bracket);
 
 /** Parse given HTML text using event-based approach.
 
@@ -54,18 +57,21 @@ const isNotStringSpecific = q => c => (c != q && c != code_backslash);
 const genericParseHTML = ({onOpenTag, onCloseTag, onText}, options) => s => {
   const len = s.length;
   const strict = (options && undefined !== options.strict) ? options.strict : true;
+  const cdata = (options && undefined !== options.cdata) ? options.cdata: false;
+  const ieTags = (options && undefined !== options.ieTags) ? options.ieTags: false;
 
   var pos = 0;
   var error = null;
 
   const setError = (fname, message) => {
     var s1 = s.substring(0, pos);
-    var line = (s1.match(/\n/g) || []).length;
-    var column = (s1.match(/[^\n]*$/)[0] || '').length;
+    var line = 1 + (s1.match(/\n/g) || []).length;
+    var s2 = s1.match(/[^\n]*$/)[0] || '';
+    var column = s2.length;
     error = new Error(
       fname + ' failed at position (' + line + ', ' + column + '): '
     + message
-    + '\n\n\n' + s.substring(pos - 100, pos-1) + '||||' + s.substring(pos, pos + 100));
+    + '\n\n' + s2 + '^' + s.substring(pos, pos + 1));
   };
 
   const skipWhile = p => {
@@ -157,13 +163,34 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, options) => s => {
 
   const readOpenTag = (tagName) => {
 
+    if (undefined === tagName && !strict) {
+      skipWhile(isSpace);
+    }
+
     var name = tagName || readChar(isAlpha) + takeWhile(isIdentificator);
     if (!name.length) {
       setError('readOpenTag', 'empty name');
       return;
     }
 
-    var props = readProps();
+    var props;
+
+    if (ieTags && code_bang == name.charCodeAt(0)) {
+      skipWhile(isSpace);
+
+      props = {
+        args: takeWhile(c => code_right_bracket != c)
+      };
+
+      if (!tryChar(code_right_bracket)) {
+        setError('readOpenTag', 'unexpected end of the IE-specific tag');
+        return;
+      }
+    }
+    else {
+      props = readProps();
+    }
+
     skipWhile(isSpace);
 
     if (tryChar(code_gt)) {
@@ -179,22 +206,28 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, options) => s => {
     }
   };
 
-  const readCloseTag = () => {
+  const readCloseTag = (tagName) => {
 
-    var name = readChar(isAlpha) + takeWhile(isIdentificator);
+    if (undefined === tagName && !strict) {
+      skipWhile(isSpace);
+    }
+
+    var name = tagName || readChar(isAlpha) + takeWhile(isIdentificator);
+
+    var checkEnding = (ieTags && code_bang == name.charCodeAt(0))
+      ? () => tryString(']>')
+      : () => tryChar(code_gt);
 
     skipWhile(isSpace);
-    if (strict) {
-      if (!tryChar(code_gt)) {
+
+    while (pos < len && !checkEnding()) {
+      if (strict) {
         setError('readCloseTag', 'unexpected end of the tag');
         return;
       }
+      readChar();
     }
-    else {
-      while (pos < len && !tryChar(code_gt)) {
-        readChar();
-      }
-    }
+
     onCloseTag(name);
   };
 
@@ -233,7 +266,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, options) => s => {
   };
 
 
-  const readComment = () => {
+  const readComment = (ending = '-->') => {
     if (!tryChar(code_hyphen)) {
       setError('readComment', 'expected hyphen');
       return;
@@ -249,7 +282,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, options) => s => {
         return;
       }
 
-      if (tryString('-->')) {
+      if (tryString(ending)) {
         break;
       }
 
@@ -307,7 +340,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, options) => s => {
     while (pos < len) {
       result += takeWhile(isNotStringSpecific(c));
       if (!(pos < len)) {
-        setError('readString', 'unexpected end of file');
+        setError('readString('+String.fromCharCode(c), 'unexpected end of file');
         return;
       }
 
@@ -323,6 +356,23 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, options) => s => {
     }
 
     return result;
+  };
+
+  const readCDATA = () => {
+    var result = '';
+    while (pos < len) {
+      result += takeWhile(isNotCDATASpecific);
+
+      if (tryString(']]>')) {
+        break;
+      }
+      else {
+        result += readChar();
+      }
+    }
+    onOpenTag('!CDATA', {});
+    onText(result);
+    onCloseTag('!CDATA');
   };
 
   const readStyle = () => {
@@ -371,15 +421,23 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, options) => s => {
     onCloseTag('style');
   };
 
-
   const readScript = () => {
 
     readOpenTag('script');
 
     var contents = '';
+    var pos1 = pos;
+    var regexpCompatible = false;
 
     while (pos < len) {
       contents += takeWhile(isNotScriptSpecific);
+
+      for (; pos1 < pos; ++pos1) {
+        if (isSpace(s.charCodeAt(pos1))) {
+          continue;
+        }
+        regexpCompatible = (-1 != '(,=:[!&|?{};'.indexOf(s.charAt(pos1)));
+      }
 
       if (!(pos < len)) {
         setError('readScript', 'unexpected end of file');
@@ -389,8 +447,13 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, options) => s => {
       if (tryString('</script>')) {
         break;
       }
-
-      if (tryString('/*')) {
+      if (tryString('<!-')) {
+        readComment();
+      }
+      else if (regexpCompatible && code_slash == s.charCodeAt(pos)) {
+        contents += readChar() + readString(code_slash) + '/';
+      }
+      else if (tryString('/*')) {
         let comment = readCStyleComment();
         if (null !== error) {
           return;
@@ -417,6 +480,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, options) => s => {
       }
     }
 
+
     onText(contents);
     onCloseTag('script');
   };
@@ -436,13 +500,35 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, options) => s => {
 
     prevPos = pos;
 
+    if (!strict) {
+      if (tryChar(code_gt)) {
+        // do nothing
+      }
+    }
+
     if (tryChar(code_lt)) {
-      if (tryChar(code_slash)) {
+      if (!strict && code_lt == s.charCodeAt(pos)) {
+        // do nothing
+      }
+      else if (tryChar(code_slash)) {
         readCloseTag();
       }
       else if (tryChar(code_bang)) {
         if (tryChar(code_hyphen)) {
           readComment();
+        }
+        else if (tryChar(code_left_bracket)) {
+          if (cdata && tryString('CDATA[')) {
+            readCDATA();
+          }
+          else if (ieTags) {
+            if (tryString('if')) {
+              readOpenTag('!if');
+            }
+            else if (tryString('endif')) {
+              readCloseTag('!if');
+            }
+          }
         }
         else {
           readDocType();
@@ -485,7 +571,6 @@ const parseHTML = (s, options) => {
   var node = null;
 
   var onOpenTag = (name, props) => {
-
     if (null != node) {
       stack.push(node);
     }
@@ -500,7 +585,6 @@ const parseHTML = (s, options) => {
   };
 
   var onCloseTag = name => {
-
     if (null != node) {
       if (stack.length) {
         let parent = stack.pop();
@@ -533,7 +617,6 @@ const parseHTML = (s, options) => {
   if (output instanceof Error) {
     return output;
   }
-
   return result[0];
 };
 
