@@ -22,6 +22,7 @@ const code_bang = '!'.charCodeAt(0);
 const code_equal = '='.charCodeAt(0);
 const code_left_bracket = '['.charCodeAt(0);
 const code_right_bracket = ']'.charCodeAt(0);
+const code_question = '?'.charCodeAt(0);
 
 
 const isSpace = c => (c == code_space || c == code_newline || c == code_cr || c == code_tab);
@@ -54,11 +55,13 @@ const isNotCDATASpecific = c => (c != code_right_bracket);
 
    @return {(void|Error)}
 */
-const genericParseHTML = ({onOpenTag, onCloseTag, onText}, options) => s => {
+const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => {
   const len = s.length;
-  const strict = (options && undefined !== options.strict) ? options.strict : true;
-  const cdata = (options && undefined !== options.cdata) ? options.cdata: false;
-  const ieTags = (options && undefined !== options.ieTags) ? options.ieTags: false;
+  const options = userOptions || {};
+  const strict = (undefined !== options.strict) ? options.strict : true;
+  const cdata = (undefined !== options.cdata) ? options.cdata: false;
+  const ieTags = (undefined !== options.ieTags) ? options.ieTags: false;
+  const xmlDeclarations = (undefined !== options.xmlDeclarations) ? options.xmlDeclarations: false;
 
   var pos = 0;
   var error = null;
@@ -340,7 +343,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, options) => s => {
     while (pos < len) {
       result += takeWhile(isNotStringSpecific(c));
       if (!(pos < len)) {
-        setError('readString('+String.fromCharCode(c), 'unexpected end of file');
+        setError('readString('+String.fromCharCode(c)+')', 'unexpected end of file');
         return;
       }
 
@@ -486,6 +489,28 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, options) => s => {
   };
 
 
+  const readXMLDeclaration = () => {
+    if (!strict) {
+      skipWhile(isSpace);
+    }
+
+    if (!tryString('xml')) {
+      setError('readXMLDeclaration', 'not an XML declaration');
+      return;
+    }
+
+    var props = readProps();
+
+    if (!((strict && tryString('?>')) || tryString('>'))) {
+      setError('readXMLDeclaration', 'unexpected end of the declaration');
+      return;
+    }
+
+    onOpenTag('?xml', props);
+    onCloseTag('?xml');
+  };
+
+
   var prevPos = -1;
 
   while (pos < len) {
@@ -509,6 +534,9 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, options) => s => {
     if (tryChar(code_lt)) {
       if (!strict && code_lt == s.charCodeAt(pos)) {
         // do nothing
+      }
+      else if (xmlDeclarations && tryChar(code_question)) {
+        readXMLDeclaration();
       }
       else if (tryChar(code_slash)) {
         readCloseTag();

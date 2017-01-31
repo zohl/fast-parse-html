@@ -208,6 +208,32 @@ describe('parseHTML', () => {
   });
 
 
+  it('works with XML declarations', () => {
+
+    var roundTrip = (html, expected, strict) => {
+      var result = parseHTML(html, {xmlDeclarations: true, strict: strict});
+      assert.ok(undefined !== result, 'result is undefined');
+      assert.ok(!(result instanceof Error), result.message);
+      if (undefined !== expected) {
+        assert.deepEqual(expected, result);
+      }
+    }
+
+    roundTrip(`<?xml version="1.0" encoding="UTF-8"?>`, {
+      name: '?xml'
+      , props: {'version': '1.0', 'encoding': 'UTF-8'}
+    , children: []
+    }, true);
+
+    roundTrip(`<?xml version="1.0" encoding="UTF-8"?>`, {
+      name: '?xml'
+      , props: {'version': '1.0', 'encoding': 'UTF-8'}
+    , children: []
+    }, false);
+
+  });
+
+
   it('works with tricky/broken html snippets', () => {
 
     var roundTrip = (html, expected) => {
