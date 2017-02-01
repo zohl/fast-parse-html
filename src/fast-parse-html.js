@@ -66,15 +66,16 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
   var pos = 0;
   var error = null;
 
-  const setError = (fname, message) => {
-    var s1 = s.substring(0, pos);
+  const getPosition = p => {
+    var s1 = s.substring(0, p);
     var line = 1 + (s1.match(/\n/g) || []).length;
     var s2 = s1.match(/[^\n]*$/)[0] || '';
     var column = s2.length;
-    error = new Error(
-      fname + ' failed at position (' + line + ', ' + column + '): '
-    + message
-    + '\n\n' + s2 + '^' + s.substring(pos, pos + 1));
+    return '(' + line + ', ' + column + ')';
+  };
+
+  const setError = (fname, message) => {
+    error = new Error(fname + ' failed at position ' + getPosition(pos) + ': ' + message);
   };
 
   const skipWhile = p => {
@@ -453,9 +454,6 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
       if (tryString('<!-')) {
         readComment();
       }
-      else if (regexpCompatible && code_slash == s.charCodeAt(pos)) {
-        contents += readChar() + readString(code_slash) + '/';
-      }
       else if (tryString('/*')) {
         let comment = readCStyleComment();
         if (null !== error) {
@@ -465,6 +463,9 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
       }
       else if (tryString('//')) {
         contents += '//' + readCPPStyleComment() + '\n';
+      }
+      else if (regexpCompatible && code_slash == s.charCodeAt(pos)) {
+        contents += readChar() + readString(code_slash) + '/';
       }
       else {
         let c = s.charAt(pos);
@@ -557,6 +558,9 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
               readCloseTag('!if');
             }
           }
+        }
+        else if (!strict && readChar(isSpace)) {
+          // do nothing
         }
         else {
           readDocType();
