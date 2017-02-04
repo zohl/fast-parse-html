@@ -11,7 +11,7 @@ var bench = benchmark(function(html, callback) {
   if (target == '--completeness') {
     callback(failed ? result : undefined);
   }
-  else if (target == '--time') {
+  else if (target == '--speed') {
     setTimeout(() => callback(), (failed ? penalty : 0));
   }
 });

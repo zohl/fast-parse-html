@@ -1,3 +1,5 @@
 /node_modules/
 /lib/
 /benchmark/results/
+profile.txt
+isolate-*-v8.log

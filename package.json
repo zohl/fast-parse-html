@@ -8,7 +8,8 @@
     "test": "./scripts/test.sh",
     "docs": "./scripts/docs.sh",
     "benchmark-completeness": "./scripts/benchmark-completeness.sh",
-    "benchmark-time": "./scripts/benchmark-time.sh"
+    "benchmark-speed": "./scripts/benchmark-speed.sh",
+    "benchmark-speed-multiple": "./scripts/benchmark-speed-multiple.sh"
   },
   "author": "Al Zohali",
   "license": "MIT",

@@ -23,7 +23,13 @@ const code_equal = '='.charCodeAt(0);
 const code_left_bracket = '['.charCodeAt(0);
 const code_right_bracket = ']'.charCodeAt(0);
 const code_question = '?'.charCodeAt(0);
-
+const code_left_parenthesis = '('.charCodeAt(0);
+const code_comma = ','.charCodeAt(0);
+const code_semicolon = ';'.charCodeAt(0);
+const code_amp = '&'.charCodeAt(0);
+const code_pipe = '|'.charCodeAt(0);
+const code_left_curly_bracket = '{'.charCodeAt(0);
+const code_right_curly_bracket = '}'.charCodeAt(0);
 
 const isSpace = c => (c == code_space || c == code_newline || c == code_cr || c == code_tab);
 const isNotSpace = c => !isSpace(c);
@@ -40,6 +46,20 @@ const isNotCStyleCommentSpecific = c => (c != code_asterisk);
 const isNotCPPStyleCommentSpecific = c => (c != code_newline);
 const isNotStringSpecific = q => c => (c != q && c != code_backslash);
 const isNotCDATASpecific = c => (c != code_right_bracket);
+const isRegexpCompatible = c =>
+         c == code_left_parenthesis
+      || c == code_comma
+      || c == code_equal
+      || c == code_colon
+      || c == code_left_bracket
+      || c == code_bang
+      || c == code_amp
+      || c == code_pipe
+      || c == code_question
+      || c == code_left_curly_bracket
+      || c == code_right_curly_bracket
+      || c == code_semicolon;
+
 
 /** Parse given HTML text using event-based approach.
 
@@ -440,7 +460,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
         if (isSpace(s.charCodeAt(pos1))) {
           continue;
         }
-        regexpCompatible = (-1 != '(,=:[!&|?{};'.indexOf(s.charAt(pos1)));
+        regexpCompatible = isRegexpCompatible(s.charCodeAt(pos1));
       }
 
       if (!(pos < len)) {
