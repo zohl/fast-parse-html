@@ -1,5 +1,5 @@
 import assert from 'assert';
-import {parseHTML} from '../src/index.js';
+import {parseHTML} from '../build/index.js';
 import {randomHTML, renderHTML} from 'random-html';
 
 describe('parseHTML', () => {

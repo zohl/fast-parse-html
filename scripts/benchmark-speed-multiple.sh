@@ -1,9 +1,10 @@
 #!/bin/sh
 
+source ./scripts/constants.sh
+
 RESULTS="./benchmark/results"
 N=20
 
-./scripts/prepublish.sh
 [ -d "$RESULTS" ] || mkdir "$RESULTS"
 
 FN0="$(ls "$RESULTS" | tail -n 1)"

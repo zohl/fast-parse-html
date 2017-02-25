@@ -1,5 +1,6 @@
 /node_modules/
 /lib/
+/build/
 /benchmark/results/
 profile.txt
 isolate-*-v8.log

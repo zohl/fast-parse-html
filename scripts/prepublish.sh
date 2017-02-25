@@ -1,4 +1,5 @@
 #!/bin/sh
-./scripts/test.sh
-./scripts/docs.sh
-babel ./src -d ./lib
+
+source ./scripts/constants.sh
+
+babel "$BUILD_DIR" -d "$PUBLISH_DIR"

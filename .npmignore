@@ -1,1 +1,5 @@
 /src/
+/build/
+profile.txt
+isolate-*-v8.log
+

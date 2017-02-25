@@ -4,12 +4,19 @@
   "description": "Lightweight platform-independent forgiving html parser",
   "main": "lib/index.js",
   "scripts": {
-    "prepublish": "./scripts/prepublish.sh",
-    "test": "./scripts/test.sh",
-    "docs": "./scripts/docs.sh",
-    "benchmark-completeness": "./scripts/benchmark-completeness.sh",
-    "benchmark-speed": "./scripts/benchmark-speed.sh",
-    "benchmark-speed-multiple": "./scripts/benchmark-speed-multiple.sh"
+    "clean-only":      "./scripts/clean.sh",
+    "build-only":      "./scripts/build.sh",
+    "test-only":       "./scripts/test.sh",
+    "docs-only":       "./scripts/docs.sh",
+    "prepublish-only": "./scripts/prepublish.sh",
+    "clean": "run-s clean-only",
+    "build": "run-s clean-only build-only",
+    "test":  "run-s clean-only build-only test-only",
+    "docs":  "run-s clean-only build-only docs-only",
+    "prepublish":               "run-s test docs-only prepublish-only",
+    "benchmark-completeness":   "run-s test prepublish-only && ./scripts/benchmark-completeness.sh",
+    "benchmark-speed":          "run-s test prepublish-only && ./scripts/benchmark-speed.sh",
+    "benchmark-speed-multiple": "run-s test prepublish-only && ./scripts/benchmark-speed-multiple.sh"
   },
   "author": "Al Zohali",
   "license": "MIT",
@@ -17,9 +24,11 @@
     "babel-cli": "^6.18.0",
     "babel-core": "^6.21.0",
     "babel-preset-es2015": "^6.18.0",
+    "c-preprocessor": "^0.2.10",
     "documentation": "^4.0.0-beta.17",
     "htmlparser-benchmark": "^1.1.3",
     "mocha": "^3.2.0",
+    "npm-run-all": "^4.0.0",
     "random-html": "0.0.5",
     "ttest": "^1.1.0"
   }
