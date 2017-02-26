@@ -1,4 +1,3 @@
-
 const code_a = 'a'.charCodeAt(0);
 const code_z = 'z'.charCodeAt(0);
 const code_A = 'A'.charCodeAt(0);
@@ -33,7 +32,7 @@ const code_right_curly_bracket = '}'.charCodeAt(0);
 
 const isSpace = c => (c == code_space || c == code_newline || c == code_cr || c == code_tab);
 const isNotSpace = c => !isSpace(c);
-const isAlpha = c => (code_a <= c  && c <= code_z) || (code_A <= c && c <= code_z);
+const isAlpha = c => (code_a <= c  && c <= code_z) || (code_A <= c && c <= code_Z);
 const isNumber = c => (code_0 <= c && c <= code_9);
 const isIdentificator = c => isAlpha(c) || isNumber(c)
    || (c == code_hyphen) || (c == code_colon);
@@ -413,7 +412,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
         return;
       }
 
-      if (tryString('</style>')) {
+      if (tryString('</style>') || tryString('</STYLE>')) {
         break;
       }
 
@@ -468,7 +467,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
         return;
       }
 
-      if (tryString('</script>')) {
+      if (tryString('</script>') || tryString('</SCRIPT>')) {
         break;
       }
       if (tryString('<!-')) {
@@ -587,10 +586,10 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
         }
       }
       else {
-        if (tryString('style')) {
+        if (tryString('style') || tryString('STYLE')) {
           readStyle();
         }
-        else if (tryString('script')) {
+        else if (tryString('script') || tryString('SCRIPT')) {
           readScript();
         }
         else {
