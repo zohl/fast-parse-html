@@ -1,63 +1,128 @@
-const code_a = 'a'.charCodeAt(0);
-const code_z = 'z'.charCodeAt(0);
-const code_A = 'A'.charCodeAt(0);
-const code_Z = 'Z'.charCodeAt(0);
-const code_lt = '<'.charCodeAt(0);
-const code_gt = '>'.charCodeAt(0);
-const code_space = ' '.charCodeAt(0);
-const code_hyphen = '-'.charCodeAt(0);
-const code_quot = '"'.charCodeAt(0);
-const code_apos = "'".charCodeAt(0);
-const code_slash = '/'.charCodeAt(0);
-const code_backslash = '\\'.charCodeAt(0);
-const code_asterisk = '*'.charCodeAt(0);
-const code_newline = '\n'.charCodeAt(0);
-const code_cr = '\r'.charCodeAt(0);
-const code_tab = '\t'.charCodeAt(0);
-const code_colon = ':'.charCodeAt(0);
-const code_0 = '0'.charCodeAt(0);
-const code_9 = '9'.charCodeAt(0);
-const code_bang = '!'.charCodeAt(0);
-const code_equal = '='.charCodeAt(0);
-const code_left_bracket = '['.charCodeAt(0);
-const code_right_bracket = ']'.charCodeAt(0);
-const code_question = '?'.charCodeAt(0);
-const code_left_parenthesis = '('.charCodeAt(0);
-const code_comma = ','.charCodeAt(0);
-const code_semicolon = ';'.charCodeAt(0);
-const code_amp = '&'.charCodeAt(0);
-const code_pipe = '|'.charCodeAt(0);
-const code_left_curly_bracket = '{'.charCodeAt(0);
-const code_right_curly_bracket = '}'.charCodeAt(0);
+#define CODE_A_LC                97
+#define CODE_Z_LC                122
+#define CODE_A_UC                65
+#define CODE_Z_UC                90
+#define CODE_LT                  60
+#define CODE_GT                  62
+#define CODE_SPACE               32
+#define CODE_HYPHEN              45
+#define CODE_QUOT                34
+#define CODE_APOS                39
+#define CODE_SLASH               47
+#define CODE_BACKSLASH           92
+#define CODE_ASTERISK            42
+#define CODE_NEWLINE             10
+#define CODE_CR                  13
+#define CODE_TAB                 9
+#define CODE_COLON               58
+#define CODE_0                   48
+#define CODE_9                   57
+#define CODE_BANG                33
+#define CODE_EQUAL               61
+#define CODE_LEFT_BRACKET        91
+#define CODE_RIGHT_BRACKET       93
+#define CODE_QUESTION            63
+#define CODE_LEFT_PARENTHESIS    40
+#define CODE_COMMA               44
+#define CODE_SEMICOLON           59
+#define CODE_AMP                 38
+#define CODE_PIPE                124
+#define CODE_LEFT_CURLY_BRACKET  123
+#define CODE_RIGHT_CURLY_BRACKET 125
 
-const isSpace = c => (c == code_space || c == code_newline || c == code_cr || c == code_tab);
+// // 97     'a'.charCodeAt(0)
+// // 122    'z'.charCodeAt(0)
+// // 65     'A'.charCodeAt(0)
+// // 90     'Z'.charCodeAt(0)
+// // 60     '<'.charCodeAt(0)
+// // 62     '>'.charCodeAt(0)
+// // 32     ' '.charCodeAt(0)
+// // 45     '-'.charCodeAt(0)
+// // 34     '"'.charCodeAt(0)
+// // 39     "'".charCodeAt(0)
+// // 47     '/'.charCodeAt(0)
+// // 92     '\\'.charCodeAt(0)
+// // 42     '*'.charCodeAt(0)
+// // 10     '\n'.charCodeAt(0)
+// // 13     '\r'.charCodeAt(0)
+// // 9      '\t'.charCodeAt(0)
+// // 58     ':'.charCodeAt(0)
+// // 48     '0'.charCodeAt(0)
+// // 57     '9'.charCodeAt(0)
+// // 33     '!'.charCodeAt(0)
+// // 61     '='.charCodeAt(0)
+// // 91     '['.charCodeAt(0)
+// // 93     ']'.charCodeAt(0)
+// // 63     '?'.charCodeAt(0)
+// // 40     '('.charCodeAt(0)
+// // 44     ','.charCodeAt(0)
+// // 59     ';'.charCodeAt(0)
+// // 38     '&'.charCodeAt(0)
+// // 124    '|'.charCodeAt(0)
+// // 123    '{'.charCodeAt(0)
+// // 125    '}'.charCodeAt(0)
+
+// const CODE_A_LC = 'a'.charCodeAt(0);
+// const CODE_Z_LC = 'z'.charCodeAt(0);
+// const CODE_A_UC = 'A'.charCodeAt(0);
+// const CODE_Z_UC = 'Z'.charCodeAt(0);
+// const CODE_LT = '<'.charCodeAt(0);
+// const CODE_GT = '>'.charCodeAt(0);
+// const CODE_SPACE = ' '.charCodeAt(0);
+// const CODE_HYPHEN = '-'.charCodeAt(0);
+// const CODE_QUOT = '"'.charCodeAt(0);
+// const CODE_APOS = "'".charCodeAt(0);
+// const CODE_SLASH = '/'.charCodeAt(0);
+// const CODE_BACKSLASH = '\\'.charCodeAt(0);
+// const CODE_ASTERISK = '*'.charCodeAt(0);
+// const CODE_NEWLINE = '\n'.charCodeAt(0);
+// const CODE_CR = '\r'.charCodeAt(0);
+// const CODE_TAB = '\t'.charCodeAt(0);
+// const CODE_COLON = ':'.charCodeAt(0);
+// const CODE_0 = '0'.charCodeAt(0);
+// const CODE_9 = '9'.charCodeAt(0);
+// const CODE_BANG = '!'.charCodeAt(0);
+// const CODE_EQUAL = '='.charCodeAt(0);
+// const CODE_LEFT_BRACKET = '['.charCodeAt(0);
+// const CODE_RIGHT_BRACKET = ']'.charCodeAt(0);
+// const CODE_QUESTION = '?'.charCodeAt(0);
+// const CODE_LEFT_PARENTHESIS = '('.charCodeAt(0);
+// const CODE_COMMA = ','.charCodeAt(0);
+// const CODE_SEMICOLON = ';'.charCodeAt(0);
+// const CODE_AMP = '&'.charCodeAt(0);
+// const CODE_PIPE = '|'.charCodeAt(0);
+// const CODE_LEFT_CURLY_BRACKET = '{'.charCodeAt(0);
+// const CODE_RIGHT_CURLY_BRACKET = '}'.charCodeAt(0);
+
+
+const isSpace = c => (c == CODE_SPACE || c == CODE_NEWLINE || c == CODE_CR || c == CODE_TAB);
 const isNotSpace = c => !isSpace(c);
-const isAlpha = c => (code_a <= c  && c <= code_z) || (code_A <= c && c <= code_Z);
-const isNumber = c => (code_0 <= c && c <= code_9);
+const isAlpha = c => (CODE_A_LC <= c  && c <= CODE_Z_LC) || (CODE_A_UC <= c && c <= CODE_Z_UC);
+const isNumber = c => (CODE_0 <= c && c <= CODE_9);
 const isIdentificator = c => isAlpha(c) || isNumber(c)
-   || (c == code_hyphen) || (c == code_colon);
+   || (c == CODE_HYPHEN) || (c == CODE_COLON);
 
-const isNotTextSpecific = c => (c != code_lt && c != code_gt);
-const isNotEndOfComment = c => (c != code_gt && c != code_hyphen && c != code_lt);
-const isNotStyleSpecific = c => (c != code_lt && c != code_quot && c != code_apos && c != code_slash);
-const isNotScriptSpecific = c => (c != code_lt && c != code_quot && c != code_apos && c != code_slash);
-const isNotCStyleCommentSpecific = c => (c != code_asterisk);
-const isNotCPPStyleCommentSpecific = c => (c != code_newline);
-const isNotStringSpecific = q => c => (c != q && c != code_backslash);
-const isNotCDATASpecific = c => (c != code_right_bracket);
+const isNotTextSpecific = c => (c != CODE_LT && c != CODE_GT);
+const isNotEndOfComment = c => (c != CODE_GT && c != CODE_HYPHEN && c != CODE_LT);
+const isNotStyleSpecific = c => (c != CODE_LT && c != CODE_QUOT && c != CODE_APOS && c != CODE_SLASH);
+const isNotScriptSpecific = c => (c != CODE_LT && c != CODE_QUOT && c != CODE_APOS && c != CODE_SLASH);
+const isNotCStyleCommentSpecific = c => (c != CODE_ASTERISK);
+const isNotCPPStyleCommentSpecific = c => (c != CODE_NEWLINE);
+const isNotStringSpecific = q => c => (c != q && c != CODE_BACKSLASH);
+const isNotCDATASpecific = c => (c != CODE_RIGHT_BRACKET);
 const isRegexpCompatible = c =>
-         c == code_left_parenthesis
-      || c == code_comma
-      || c == code_equal
-      || c == code_colon
-      || c == code_left_bracket
-      || c == code_bang
-      || c == code_amp
-      || c == code_pipe
-      || c == code_question
-      || c == code_left_curly_bracket
-      || c == code_right_curly_bracket
-      || c == code_semicolon;
+         c == CODE_LEFT_PARENTHESIS
+      || c == CODE_COMMA
+      || c == CODE_EQUAL
+      || c == CODE_COLON
+      || c == CODE_LEFT_BRACKET
+      || c == CODE_BANG
+      || c == CODE_AMP
+      || c == CODE_PIPE
+      || c == CODE_QUESTION
+      || c == CODE_LEFT_CURLY_BRACKET
+      || c == CODE_RIGHT_CURLY_BRACKET
+      || c == CODE_SEMICOLON;
 
 
 /** Parse given HTML text using event-based approach.
@@ -144,12 +209,12 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
         let name = takeWhile(isIdentificator);
         skipWhile(isSpace);
 
-        if (tryChar(code_equal)) {
+        if (tryChar(CODE_EQUAL)) {
           skipWhile(isSpace);
           result[name] = '';
 
           let q = s.charCodeAt(pos);
-          if (tryChar(code_quot) || tryChar(code_apos)) {
+          if (tryChar(CODE_QUOT) || tryChar(CODE_APOS)) {
             let string = readString(q);
             if (null !== error) {
               return;
@@ -170,8 +235,8 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
           break;
         }
         else {
-          if ((code_slash == s.charCodeAt(pos) && code_gt == s.charCodeAt(pos + 1))
-           || (code_gt == s.charCodeAt(pos))) {
+          if ((CODE_SLASH == s.charCodeAt(pos) && CODE_GT == s.charCodeAt(pos + 1))
+           || (CODE_GT == s.charCodeAt(pos))) {
             break;
           }
           else {
@@ -198,14 +263,14 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
 
     var props;
 
-    if (ieTags && code_bang == name.charCodeAt(0)) {
+    if (ieTags && CODE_BANG == name.charCodeAt(0)) {
       skipWhile(isSpace);
 
       props = {
-        args: takeWhile(c => code_right_bracket != c)
+        args: takeWhile(c => CODE_RIGHT_BRACKET != c)
       };
 
-      if (!tryChar(code_right_bracket)) {
+      if (!tryChar(CODE_RIGHT_BRACKET)) {
         setError('readOpenTag', 'unexpected end of the IE-specific tag');
         return;
       }
@@ -216,7 +281,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
 
     skipWhile(isSpace);
 
-    if (tryChar(code_gt)) {
+    if (tryChar(CODE_GT)) {
       onOpenTag(name, props);
     }
     else if (tryString('/>')) {
@@ -237,9 +302,9 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
 
     var name = tagName || readChar(isAlpha) + takeWhile(isIdentificator);
 
-    var checkEnding = (ieTags && code_bang == name.charCodeAt(0))
+    var checkEnding = (ieTags && CODE_BANG == name.charCodeAt(0))
       ? () => tryString(']>')
-      : () => tryChar(code_gt);
+      : () => tryChar(CODE_GT);
 
     skipWhile(isSpace);
 
@@ -278,7 +343,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
     var contents = takeWhile(isNotTextSpecific);
     skipWhile(isSpace);
 
-    if (!tryChar(code_gt)) {
+    if (!tryChar(CODE_GT)) {
       setError('readDocType', 'expected end of the pseudo tag');
       return;
     }
@@ -290,7 +355,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
 
 
   const readComment = (ending = '-->') => {
-    if (!tryChar(code_hyphen)) {
+    if (!tryChar(CODE_HYPHEN)) {
       setError('readComment', 'expected hyphen');
       return;
     }
@@ -345,7 +410,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
     while (pos < len) {
       result += takeWhile(isNotCPPStyleCommentSpecific);
 
-      if (tryChar(code_newline)) {
+      if (tryChar(CODE_NEWLINE)) {
         break;
       }
       else {
@@ -371,7 +436,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
         break;
       }
 
-      if (tryChar(code_backslash)) {
+      if (tryChar(CODE_BACKSLASH)) {
         result += '\\';
       }
 
@@ -425,7 +490,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
       }
       else {
         let c = s.charAt(pos);
-        if (tryChar(code_quot) || tryChar(code_apos)) {
+        if (tryChar(CODE_QUOT) || tryChar(CODE_APOS)) {
 
           let string = readString(c.charCodeAt(0));
           if (null !== error) {
@@ -483,12 +548,12 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
       else if (tryString('//')) {
         contents += '//' + readCPPStyleComment() + '\n';
       }
-      else if (regexpCompatible && code_slash == s.charCodeAt(pos)) {
-        contents += readChar() + readString(code_slash) + '/';
+      else if (regexpCompatible && CODE_SLASH == s.charCodeAt(pos)) {
+        contents += readChar() + readString(CODE_SLASH) + '/';
       }
       else {
         let c = s.charAt(pos);
-        if (tryChar(code_quot) || tryChar(code_apos)) {
+        if (tryChar(CODE_QUOT) || tryChar(CODE_APOS)) {
 
           let string = readString(c.charCodeAt(0));
           if (null !== error) {
@@ -546,26 +611,26 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
     prevPos = pos;
 
     if (!strict) {
-      if (tryChar(code_gt)) {
+      if (tryChar(CODE_GT)) {
         // do nothing
       }
     }
 
-    if (tryChar(code_lt)) {
-      if (!strict && code_lt == s.charCodeAt(pos)) {
+    if (tryChar(CODE_LT)) {
+      if (!strict && CODE_LT == s.charCodeAt(pos)) {
         // do nothing
       }
-      else if (xmlDeclarations && tryChar(code_question)) {
+      else if (xmlDeclarations && tryChar(CODE_QUESTION)) {
         readXMLDeclaration();
       }
-      else if (tryChar(code_slash)) {
+      else if (tryChar(CODE_SLASH)) {
         readCloseTag();
       }
-      else if (tryChar(code_bang)) {
-        if (tryChar(code_hyphen)) {
+      else if (tryChar(CODE_BANG)) {
+        if (tryChar(CODE_HYPHEN)) {
           readComment();
         }
-        else if (tryChar(code_left_bracket)) {
+        else if (tryChar(CODE_LEFT_BRACKET)) {
           if (cdata && tryString('CDATA[')) {
             readCDATA();
           }
