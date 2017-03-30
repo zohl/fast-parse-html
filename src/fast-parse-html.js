@@ -99,15 +99,12 @@
 #define CURRENT_CHAR (s.charCodeAt(pos))
 #define HAS_INPUT (pos < len)
 
+#define START_SELECTION(_i) (_sel_begins[_i] = pos)
+#define STOP_SELECTION(_i) (_sel_ends[_i] = pos)
+#define GET_SELECTION(_i) (s.substring(_sel_begins[_i], _sel_ends[_i]))
+
 #define SKIP_WHILE(_E) while ((HAS_INPUT) && _E) ++pos
-#define SKIP_WHILE_G(_p) SKIP_WHILE(_p(CURRENT_CHAR))
-
-#define START_SELECTION (oldPos = pos)
-#define STOP_SELECTION (newPos = pos)
-#define SELECT_WHILE(_E) START_SELECTION; SKIP_WHILE(_E)
-
-#define GET_SELECTION (s.substring(oldPos, pos))
-#define GET_SELECTION_LIM (s.substring(oldPos, newPos))
+#define SELECT_WHILE(_i,_E) START_SELECTION(_i); SKIP_WHILE(_E); STOP_SELECTION(_i);
 
 #define TRY_CHAR(_c) ((_c == CURRENT_CHAR) ? (++pos) : false)
 #define READ_CHAR(_E) (_E ? s.charAt(pos++) : '')
@@ -155,8 +152,9 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
   const xmlDeclarations = (undefined !== options.xmlDeclarations) ? options.xmlDeclarations: false;
 
   var pos = 0;
-  var oldPos = 0
-  var newPos = 0;
+
+  var _sel_begins = [0, 0, 0];
+  var _sel_ends   = [0, 0, 0];
 
   var error = null;
 
@@ -191,8 +189,8 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
       SKIP_WHILE(IS_SPACE(CURRENT_CHAR));
       if (IS_ALPHA(CURRENT_CHAR)) {
 
-        SELECT_WHILE(IS_ALPHA(CURRENT_CHAR));
-        let name = GET_SELECTION;
+        SELECT_WHILE(0, IS_ALPHA(CURRENT_CHAR));
+        let name = GET_SELECTION(0);
 
         SKIP_WHILE(IS_SPACE(CURRENT_CHAR));
 
@@ -210,8 +208,8 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
             result[name] = string;
           }
           else {
-            SELECT_WHILE(IS_ALPHA(CURRENT_CHAR));
-            result[name] += GET_SELECTION;
+            SELECT_WHILE(0, IS_ALPHA(CURRENT_CHAR));
+            result[name] += GET_SELECTION(0);
           }
         }
         else {
@@ -251,8 +249,8 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
     }
     else {
       name = READ_CHAR(IS_ALPHA(CURRENT_CHAR));
-      SELECT_WHILE(IS_IDENTIFICATOR(CURRENT_CHAR));
-      name += GET_SELECTION;
+      SELECT_WHILE(0, IS_IDENTIFICATOR(CURRENT_CHAR));
+      name += GET_SELECTION(0);
     }
 
     if (!name.length) {
@@ -263,9 +261,9 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
 
     if (ieTags && CODE_BANG == name.charCodeAt(0)) {
       SKIP_WHILE(IS_SPACE(CURRENT_CHAR));
-      SELECT_WHILE(CODE_RIGHT_BRACKET != CURRENT_CHAR);
+      SELECT_WHILE(0, CODE_RIGHT_BRACKET != CURRENT_CHAR);
       props = {
-        args: GET_SELECTION
+        args: GET_SELECTION(0)
       };
 
       if (!TRY_CHAR(CODE_RIGHT_BRACKET)) {
@@ -303,8 +301,8 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
     }
     else {
       name = READ_CHAR(IS_ALPHA(CURRENT_CHAR));
-      SELECT_WHILE(IS_IDENTIFICATOR(CURRENT_CHAR));
-      name += GET_SELECTION;
+      SELECT_WHILE(0, IS_IDENTIFICATOR(CURRENT_CHAR));
+      name += GET_SELECTION(0);
     }
 
     var checkEnding = (ieTags && CODE_BANG == name.charCodeAt(0))
@@ -326,8 +324,8 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
 
   const readText = () => {
 
-    SELECT_WHILE(IS_NOT_TEXT_SPECIFIC(CURRENT_CHAR));
-    var text = GET_SELECTION;
+    SELECT_WHILE(0, IS_NOT_TEXT_SPECIFIC(CURRENT_CHAR));
+    var text = GET_SELECTION(0);
     if (!text.length) {
       return;
     }
@@ -337,15 +335,15 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
 
   const readDocType = () => {
 
-    SELECT_WHILE(!IS_SPACE(CURRENT_CHAR));
-    var docTypeString = GET_SELECTION;
+    SELECT_WHILE(0, !IS_SPACE(CURRENT_CHAR));
+    var docTypeString = GET_SELECTION(0);
 
     if (docTypeString.toLowerCase() != 'doctype') {
       return setError('readDocType', 'expected doctype keyword, got "' + docTypeString + '"');
     }
     SKIP_WHILE(IS_SPACE(CURRENT_CHAR));
-    SELECT_WHILE((IS_NOT_TEXT_SPECIFIC(CURRENT_CHAR)));
-    var contents = GET_SELECTION;
+    SELECT_WHILE(0, (IS_NOT_TEXT_SPECIFIC(CURRENT_CHAR)));
+    var contents = GET_SELECTION(0);
     SKIP_WHILE(IS_SPACE(CURRENT_CHAR));
 
     if (!TRY_CHAR(CODE_GT)) {
@@ -363,79 +361,75 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
       return setError('readComment', 'expected hyphen');
     }
 
-    var contents = '';
+    START_SELECTION(0);
 
     while (HAS_INPUT) {
-      SELECT_WHILE(IS_NOT_COMMENT_SPECIFIC(CURRENT_CHAR));
-      contents += GET_SELECTION;
+      SKIP_WHILE(IS_NOT_COMMENT_SPECIFIC(CURRENT_CHAR));
 
-      if (!HAS_INPUT) {
-        return setError('readComment', 'unexpected end of file');
-      }
-
+      STOP_SELECTION(0);
       if (tryString(ending)) {
-        break;
+        onOpenTag('!--', {});
+        onText(GET_SELECTION(0));
+        onCloseTag('!--');
+        return;
       }
-
-      contents += READ_ANY_CHAR;
+      ++pos;
     }
 
-    onOpenTag('!--', {});
-    onText(contents);
-    onCloseTag('!--');
+    if (!HAS_INPUT) {
+      return setError('readComment', 'unexpected end of file');
+    }
   };
 
 
   const readCStyleComment = () => {
-    var result = '';
 
+    START_SELECTION(1);
     while (HAS_INPUT) {
-      SELECT_WHILE(IS_NOT_CSTYLE_COMMENT_SPECIFIC(CURRENT_CHAR));
-      result += GET_SELECTION;
+      SKIP_WHILE(IS_NOT_CSTYLE_COMMENT_SPECIFIC(CURRENT_CHAR));
 
-      if (!HAS_INPUT) {
-        return setError('readCStyleComment', 'unexpected end of file');
-      }
-
+      STOP_SELECTION(1);
       if (tryString('*/')) {
-        break;
+        return GET_SELECTION(1);
       }
-
-      result += READ_ANY_CHAR;
+      ++pos;
     }
 
-    return result;
+    if (!HAS_INPUT) {
+      return setError('readCStyleComment', 'unexpected end of file');
+    }
   };
 
 
   const readCPPStyleComment = () => {
-    var result = '';
-    while (HAS_INPUT) {
-      SELECT_WHILE(IS_NOT_CPPSTYLE_COMMENT_SPECIFIC(CURRENT_CHAR));
-      result += GET_SELECTION;
 
+    START_SELECTION(1);
+    while (HAS_INPUT) {
+      SKIP_WHILE(IS_NOT_CPPSTYLE_COMMENT_SPECIFIC(CURRENT_CHAR));
+
+      STOP_SELECTION(1);
       if (TRY_CHAR(CODE_NEWLINE)) {
-        break;
+        return GET_SELECTION(1);
       }
       else {
-        result += READ_ANY_CHAR;
+        ++pos;
       }
     }
 
-    return result;
+    // Absence of HAS_INPUT check is intentional.
   };
 
 
   const readString = c => {
 
-    START_SELECTION;
+    START_SELECTION(1);
 
     do {
       SKIP_WHILE(IS_NOT_STRING_SPECIFIC(c, CURRENT_CHAR));
-      STOP_SELECTION;
+      STOP_SELECTION(1);
 
       if (TRY_CHAR(c)) {
-        return GET_SELECTION_LIM;
+        return GET_SELECTION(1);
       }
 
       TRY_CHAR(CODE_BACKSLASH);
@@ -449,21 +443,26 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
 
 
   const readCDATA = () => {
-    var result = '';
-    while (HAS_INPUT) {
-      SELECT_WHILE(IS_NOT_CDATA_SPECIFIC(CURRENT_CHAR));
-      result += GET_SELECTION;
 
+    START_SELECTION(0);
+    while (HAS_INPUT) {
+      SKIP_WHILE(IS_NOT_CDATA_SPECIFIC(CURRENT_CHAR));
+
+      STOP_SELECTION(0);
       if (tryString(']]>')) {
-        break;
+        onOpenTag('!CDATA', {});
+        onText(GET_SELECTION(0));
+        onCloseTag('!CDATA');
+        return;
       }
       else {
-        result += READ_ANY_CHAR;
+        ++pos;
       }
     }
-    onOpenTag('!CDATA', {});
-    onText(result);
-    onCloseTag('!CDATA');
+
+    if (!HAS_INPUT) {
+      return setError('readCDATA', 'unexpected end of file');
+    }
   };
 
   const readStyle = () => {
@@ -473,8 +472,8 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
     var contents = '';
 
     while (HAS_INPUT) {
-      SELECT_WHILE(IS_NOT_STYLE_SPECIFIC(CURRENT_CHAR));
-      contents += GET_SELECTION;
+      SELECT_WHILE(0, IS_NOT_STYLE_SPECIFIC(CURRENT_CHAR));
+      contents += GET_SELECTION(0);
 
       if (!HAS_INPUT) {
         return setError('readStyle', 'unexpected end of file');
@@ -522,8 +521,8 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
     var regexpCompatible = false;
 
     while (HAS_INPUT) {
-      SELECT_WHILE(IS_NOT_SCRIPT_SPECIFIC(CURRENT_CHAR));
-      contents += GET_SELECTION;
+      SELECT_WHILE(0, IS_NOT_SCRIPT_SPECIFIC(CURRENT_CHAR));
+      contents += GET_SELECTION(0);
 
       for (; pos1 < pos; ++pos1) {
         if (IS_SPACE(s.charCodeAt(pos1))) {
