@@ -98,15 +98,19 @@
 
 #define CURRENT_CHAR (s.charCodeAt(pos))
 #define HAS_INPUT (pos < len)
+#define NEXT_CHAR (++pos)
 
-#define START_SELECTION(_i) (_sel_begins[_i] = pos)
-#define STOP_SELECTION(_i) (_sel_ends[_i] = pos)
-#define GET_SELECTION(_i) (s.substring(_sel_begins[_i], _sel_ends[_i]))
+#define START_SELECTION (_sel_begin = pos)
+#define STOP_SELECTION (_sel_end = pos)
+#define GET_SELECTION (s.substring(_sel_begin, _sel_end))
+#define GET_SELECTION_INT(l,r) (s.substring(_sel_begin + (l), _sel_end + (r)))
+#define GET_SELECTION_LENGTH (_sel_end - _sel_begin)
 
-#define SKIP_WHILE(_E) while ((HAS_INPUT) && _E) ++pos
-#define SELECT_WHILE(_i,_E) START_SELECTION(_i); SKIP_WHILE(_E); STOP_SELECTION(_i);
 
-#define TRY_CHAR(_c) ((_c == CURRENT_CHAR) ? (++pos) : false)
+#define SKIP_WHILE(_E) while ((HAS_INPUT) && _E) NEXT_CHAR
+#define SELECT_WHILE(_i,_E) START_SELECTION; SKIP_WHILE(_E); STOP_SELECTION;
+
+#define TRY_CHAR(_c) ((_c == CURRENT_CHAR) ? NEXT_CHAR : false)
 #define READ_CHAR(_E) (_E ? s.charAt(pos++) : '')
 #define READ_ANY_CHAR (s.charAt(pos++))
 
@@ -128,6 +132,7 @@
 
 #define IS_REGEXP_COMPATIBLE(_c) (_c == CODE_LEFT_PARENTHESIS || _c == CODE_COMMA || _c == CODE_EQUAL || _c == CODE_COLON || _c == CODE_LEFT_BRACKET || _c == CODE_BANG || _c == CODE_AMP || _c == CODE_PIPE || _c == CODE_QUESTION || _c == CODE_LEFT_CURLY_BRACKET || _c == CODE_RIGHT_CURLY_BRACKET || _c == CODE_SEMICOLON)
 
+#define COMMENT_ENDING '-->'
 
 /** Parse given HTML text using event-based approach.
 
@@ -153,8 +158,8 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
 
   var pos = 0;
 
-  var _sel_begins = [0, 0, 0];
-  var _sel_ends   = [0, 0, 0];
+  var _sel_begin = 0;
+  var _sel_end = 0;
 
   var error = null;
 
@@ -190,7 +195,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
       if (IS_ALPHA(CURRENT_CHAR)) {
 
         SELECT_WHILE(0, IS_ALPHA(CURRENT_CHAR));
-        let name = GET_SELECTION(0);
+        let name = GET_SELECTION;
 
         SKIP_WHILE(IS_SPACE(CURRENT_CHAR));
 
@@ -201,15 +206,16 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
           let q = s.charCodeAt(pos);
           if (TRY_CHAR(CODE_QUOT)
            || TRY_CHAR(CODE_APOS)) {
-            let string = readString(q);
-            if (null !== error) {
+            START_SELECTION;
+            if (!readString(q)) {
               return;
             }
-            result[name] = string;
+            STOP_SELECTION;
+            result[name] = GET_SELECTION_INT(0,-1);
           }
           else {
             SELECT_WHILE(0, IS_ALPHA(CURRENT_CHAR));
-            result[name] += GET_SELECTION(0);
+            result[name] += GET_SELECTION;
           }
         }
         else {
@@ -227,7 +233,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
             break;
           }
           else {
-            READ_ANY_CHAR;
+            NEXT_CHAR;
           }
         }
       }
@@ -250,7 +256,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
     else {
       name = READ_CHAR(IS_ALPHA(CURRENT_CHAR));
       SELECT_WHILE(0, IS_IDENTIFICATOR(CURRENT_CHAR));
-      name += GET_SELECTION(0);
+      name += GET_SELECTION;
     }
 
     if (!name.length) {
@@ -263,7 +269,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
       SKIP_WHILE(IS_SPACE(CURRENT_CHAR));
       SELECT_WHILE(0, CODE_RIGHT_BRACKET != CURRENT_CHAR);
       props = {
-        args: GET_SELECTION(0)
+        args: GET_SELECTION
       };
 
       if (!TRY_CHAR(CODE_RIGHT_BRACKET)) {
@@ -302,7 +308,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
     else {
       name = READ_CHAR(IS_ALPHA(CURRENT_CHAR));
       SELECT_WHILE(0, IS_IDENTIFICATOR(CURRENT_CHAR));
-      name += GET_SELECTION(0);
+      name += GET_SELECTION;
     }
 
     var checkEnding = (ieTags && CODE_BANG == name.charCodeAt(0))
@@ -315,7 +321,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
       if (strict) {
         return setError('readCloseTag', 'unexpected end of the tag');
       }
-      READ_ANY_CHAR;
+      NEXT_CHAR;
     }
 
     onCloseTag(name);
@@ -323,27 +329,24 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
 
 
   const readText = () => {
-
     SELECT_WHILE(0, IS_NOT_TEXT_SPECIFIC(CURRENT_CHAR));
-    var text = GET_SELECTION(0);
-    if (!text.length) {
-      return;
+    if (GET_SELECTION_LENGTH) {
+      onText(GET_SELECTION);
     }
-    onText(text);
   };
 
 
   const readDocType = () => {
 
     SELECT_WHILE(0, !IS_SPACE(CURRENT_CHAR));
-    var docTypeString = GET_SELECTION(0);
+    var docTypeString = GET_SELECTION;
 
     if (docTypeString.toLowerCase() != 'doctype') {
       return setError('readDocType', 'expected doctype keyword, got "' + docTypeString + '"');
     }
     SKIP_WHILE(IS_SPACE(CURRENT_CHAR));
     SELECT_WHILE(0, (IS_NOT_TEXT_SPECIFIC(CURRENT_CHAR)));
-    var contents = GET_SELECTION(0);
+    var contents = GET_SELECTION;
     SKIP_WHILE(IS_SPACE(CURRENT_CHAR));
 
     if (!TRY_CHAR(CODE_GT)) {
@@ -356,173 +359,147 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
   };
 
 
-  const readComment = (ending = '-->') => {
+  const readComment = () => {
     if (!TRY_CHAR(CODE_HYPHEN)) {
-      return setError('readComment', 'expected hyphen');
+      setError('readComment', 'expected hyphen');
+      return false;
     }
-
-    START_SELECTION(0);
 
     while (HAS_INPUT) {
       SKIP_WHILE(IS_NOT_COMMENT_SPECIFIC(CURRENT_CHAR));
 
-      STOP_SELECTION(0);
-      if (tryString(ending)) {
-        onOpenTag('!--', {});
-        onText(GET_SELECTION(0));
-        onCloseTag('!--');
-        return;
+      if (tryString(COMMENT_ENDING)) {
+        return true;
       }
-      ++pos;
+      NEXT_CHAR;
     }
 
-    if (!HAS_INPUT) {
-      return setError('readComment', 'unexpected end of file');
-    }
+    setError('readComment', 'unexpected end of file');
+    return false;
   };
-
 
   const readCStyleComment = () => {
 
-    START_SELECTION(1);
     while (HAS_INPUT) {
       SKIP_WHILE(IS_NOT_CSTYLE_COMMENT_SPECIFIC(CURRENT_CHAR));
 
-      STOP_SELECTION(1);
       if (tryString('*/')) {
-        return GET_SELECTION(1);
+        return true;
       }
-      ++pos;
+      NEXT_CHAR;
     }
 
-    if (!HAS_INPUT) {
-      return setError('readCStyleComment', 'unexpected end of file');
-    }
+    setError('readCStyleComment', 'unexpected end of file');
+    return false;
   };
-
 
   const readCPPStyleComment = () => {
 
-    START_SELECTION(1);
     while (HAS_INPUT) {
       SKIP_WHILE(IS_NOT_CPPSTYLE_COMMENT_SPECIFIC(CURRENT_CHAR));
 
-      STOP_SELECTION(1);
       if (TRY_CHAR(CODE_NEWLINE)) {
-        return GET_SELECTION(1);
+        return true;
       }
       else {
-        ++pos;
+        NEXT_CHAR;
       }
     }
 
-    // Absence of HAS_INPUT check is intentional.
+    return true;
   };
 
 
   const readString = c => {
 
-    START_SELECTION(1);
-
-    do {
+    while (HAS_INPUT) {
       SKIP_WHILE(IS_NOT_STRING_SPECIFIC(c, CURRENT_CHAR));
-      STOP_SELECTION(1);
 
       if (TRY_CHAR(c)) {
-        return GET_SELECTION(1);
+        return true;
       }
 
       TRY_CHAR(CODE_BACKSLASH);
-      ++pos;
-    } while (HAS_INPUT);
-
-    if (!HAS_INPUT) {
-      return setError('readString('+String.fromCharCode(c)+')', 'unexpected end of file');
+      NEXT_CHAR;
     }
+
+    setError('readString('+String.fromCharCode(c)+')', 'unexpected end of file');
+    return false;
   };
 
 
   const readCDATA = () => {
 
-    START_SELECTION(0);
+    START_SELECTION;
     while (HAS_INPUT) {
       SKIP_WHILE(IS_NOT_CDATA_SPECIFIC(CURRENT_CHAR));
 
-      STOP_SELECTION(0);
+      STOP_SELECTION;
       if (tryString(']]>')) {
         onOpenTag('!CDATA', {});
-        onText(GET_SELECTION(0));
+        onText(GET_SELECTION);
         onCloseTag('!CDATA');
         return;
       }
       else {
-        ++pos;
+        NEXT_CHAR;
       }
     }
 
-    if (!HAS_INPUT) {
-      return setError('readCDATA', 'unexpected end of file');
-    }
+    setError('readCDATA', 'unexpected end of file');
   };
+
 
   const readStyle = () => {
 
     readOpenTag('style');
 
-    var contents = '';
-
+    START_SELECTION;
     while (HAS_INPUT) {
-      SELECT_WHILE(0, IS_NOT_STYLE_SPECIFIC(CURRENT_CHAR));
-      contents += GET_SELECTION(0);
+      SKIP_WHILE(IS_NOT_STYLE_SPECIFIC(CURRENT_CHAR));
 
-      if (!HAS_INPUT) {
-        return setError('readStyle', 'unexpected end of file');
-      }
-
+      STOP_SELECTION;
       if (tryString('</style>') || tryString('</STYLE>')) {
-        break;
+        onText(GET_SELECTION);
+        onCloseTag('style');
+        return;
       }
 
       if (tryString('/*')) {
-        let comment = readCStyleComment();
-        if (null !== error) {
+        if(!readCStyleComment()) {
           return;
         }
-        contents += '/*' + comment + '*/';
       }
       else {
-        let c = s.charAt(pos);
+        let c = s.charCodeAt(pos);
         if (TRY_CHAR(CODE_QUOT)
          || TRY_CHAR(CODE_APOS)) {
 
-          let string = readString(c.charCodeAt(0));
-          if (null !== error) {
+          if (!readString(c)) {
             return;
           }
-
-          contents += c + string + c;
         }
         else {
-          contents += READ_ANY_CHAR;
+          NEXT_CHAR;
         }
       }
     }
 
-    onText(contents);
-    onCloseTag('style');
+    if (!HAS_INPUT) {
+      return setError('readStyle', 'unexpected end of file');
+    }
   };
 
   const readScript = () => {
 
     readOpenTag('script');
 
-    var contents = '';
     var pos1 = pos;
     var regexpCompatible = false;
 
+    START_SELECTION;
     while (HAS_INPUT) {
-      SELECT_WHILE(0, IS_NOT_SCRIPT_SPECIFIC(CURRENT_CHAR));
-      contents += GET_SELECTION(0);
+      SKIP_WHILE(IS_NOT_SCRIPT_SPECIFIC(CURRENT_CHAR));
 
       for (; pos1 < pos; ++pos1) {
         if (IS_SPACE(s.charCodeAt(pos1))) {
@@ -533,50 +510,50 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
         }
       }
 
-      if (!HAS_INPUT) {
-        return setError('readScript', 'unexpected end of file');
+      STOP_SELECTION;
+      if (tryString('</script>') || tryString('</SCRIPT>')) {
+        onText(GET_SELECTION);
+        onCloseTag('script');
+        return;
       }
 
-      if (tryString('</script>') || tryString('</SCRIPT>')) {
-        break;
-      }
       if (tryString('<!-')) {
-        readComment();
-      }
-      else if (tryString('/*')) {
-        let comment = readCStyleComment();
-        if (null !== error) {
+        if (!readComment()) {
           return;
         }
-        contents += '/*' + comment + '*/';
+      }
+      else if (tryString('/*')) {
+        if (!readCStyleComment()) {
+          return;
+        }
       }
       else if (tryString('//')) {
-        contents += '//' + readCPPStyleComment() + '\n';
+        readCPPStyleComment();
       }
-      else if (regexpCompatible && CODE_SLASH == s.charCodeAt(pos)) {
-        contents += READ_ANY_CHAR + readString(CODE_SLASH) + '/';
+      else if (regexpCompatible && CODE_SLASH == CURRENT_CHAR) {
+        NEXT_CHAR;
+        if (!readString(CODE_SLASH)) {
+          return;
+        }
       }
       else {
-        let c = s.charAt(pos);
+        let c = s.charCodeAt(pos);
         if (TRY_CHAR(CODE_QUOT)
          || TRY_CHAR(CODE_APOS)) {
 
-          let string = readString(c.charCodeAt(0));
-          if (null !== error) {
+          if (!readString(c)) {
             return;
           }
-
-          contents += c + string + c;
         }
         else {
-          contents += READ_ANY_CHAR;
+          NEXT_CHAR;
         }
       }
     }
 
-
-    onText(contents);
-    onCloseTag('script');
+    if (!HAS_INPUT) {
+      return setError('readScript', 'unexpected end of file');
+    }
   };
 
 
@@ -632,7 +609,13 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
       }
       else if (TRY_CHAR(CODE_BANG)) {
         if (TRY_CHAR(CODE_HYPHEN)) {
+          START_SELECTION;
           readComment();
+          STOP_SELECTION;
+
+          onOpenTag('!--', {});
+          onText(GET_SELECTION_INT(1,-3));
+          onCloseTag('!--');
         }
         else if (TRY_CHAR(CODE_LEFT_BRACKET)) {
           if (cdata && tryString('CDATA[')) {
