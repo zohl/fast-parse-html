@@ -669,9 +669,18 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
 
 
 const parseHTML = (s, options) => {
+
+  const allowMismatchedTags = (undefined !== options && options.allowMismatchedTags);
+  const ignoreTopLevelText = (undefined !== options && options.ignoreTopLevelText);
+
   var result = [];
   var stack = [];
   var node = null;
+  var error = null;
+
+  const setError = (fname, message) => {
+    error = new Error(fname + ' failed: ' + message);
+  };
 
   var onOpenTag = (name, props) => {
     if (null != node) {
@@ -689,6 +698,10 @@ const parseHTML = (s, options) => {
 
   var onCloseTag = name => {
     if (null != node) {
+      if (!allowMismatchedTags && node.name != name) {
+        setError('onCloseTag', 'tag names are mismatched: (' + node.name + ', ' + name + ')');
+      }
+
       if (stack.length) {
         let parent = stack.pop();
         parent.children.push(node);
@@ -700,27 +713,33 @@ const parseHTML = (s, options) => {
       }
     }
     else {
-      // TODO optional exception
+      if (!allowMismatchedTags) {
+        setError('onCloseTag', 'close tag without pair');
+      }
     }
   };
 
   var onText = text => {
-
     if (null != node) {
       node.children.push(text);
     }
     else {
-      // TODO optional text node
-      result.push(text);
+      if (!ignoreTopLevelText) {
+        result.push(text);
+      }
     }
   };
 
+  if (null !== error) {
+    return error;
+  }
 
   var output = genericParseHTML({onOpenTag, onCloseTag, onText}, options)(s);
   if (output instanceof Error) {
     return output;
   }
-  return result[0];
+
+  return result;
 };
 
 export {genericParseHTML, parseHTML}

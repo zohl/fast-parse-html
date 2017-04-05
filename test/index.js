@@ -8,7 +8,7 @@ describe('parseHTML', () => {
 
     var roundTrip = html => {
       var html1 = html.replace(/[ \n]+/g, '');
-      var result = parseHTML(html1);
+      var result = parseHTML(html1)[0];
       assert.ok(!(result instanceof Error), result.message);
       assert.equal(html1, renderHTML(false)(result));
     }
@@ -30,11 +30,24 @@ describe('parseHTML', () => {
     `);
   });
 
+
+  it('permits mismatched tags', () => {
+    var roundTrip = html => {
+      var html1 = html.replace(/[ \n]+/g, '');
+      var result = parseHTML(html1, {allowMismatchedTags: true})[0];
+      assert.ok(!(result instanceof Error), result.message);
+      assert.deepEqual(result, {'name': 'div', 'props': {}, 'children': ['foo']});
+    }
+
+    roundTrip(`<div>foo</p>`);
+  });
+
+
   it('works with doctype', () => {
 
     var roundTrip = doctype => {
       var html = '<!DOCTYPE ' + doctype + '>';
-      var result = parseHTML(html);
+      var result = parseHTML(html)[0];
       assert.ok(!(result instanceof Error), result.message);
       assert.equal(html, renderHTML(false)(result));
     };
@@ -52,7 +65,7 @@ describe('parseHTML', () => {
 
     var roundTrip = comment => {
       var html = '<!--' + comment + '-->';
-      var result = parseHTML(html);
+      var result = parseHTML(html)[0];
       assert.ok(!(result instanceof Error), result.message);
       assert.deepEqual({name: '!--', props: {}, children: [comment]}, result);
       assert.equal(html, renderHTML(false)(result));
@@ -69,7 +82,7 @@ describe('parseHTML', () => {
   it('works with style tags', () => {
     var roundTrip = style => {
       var html = '<style>' + style + '</style>';
-      var result = parseHTML(html);
+      var result = parseHTML(html)[0];
       assert.ok(!(result instanceof Error), result.message);
       assert.deepEqual({name: 'style', props: {}, children: [style]}, result);
       assert.equal(html, renderHTML(false)(result));
@@ -106,7 +119,7 @@ describe('parseHTML', () => {
   it('works with script tags', () => {
     var roundTrip = script => {
       var html = '<script>' + script + '</script>';
-      var result = parseHTML(html);
+      var result = parseHTML(html)[0];
       assert.ok(!(result instanceof Error), result.message);
       assert.deepEqual({name: 'script', props: {}, children: [script]}, result);
       assert.equal(html, renderHTML(false)(result));
@@ -136,7 +149,7 @@ describe('parseHTML', () => {
 
   it('works with props', () => {
     var roundTrip = (html, props) => {
-      var result = parseHTML(html);
+      var result = parseHTML(html)[0];
       assert.ok(!(result instanceof Error), result.message);
       assert.deepEqual(result.props, props);
     };
@@ -163,7 +176,7 @@ describe('parseHTML', () => {
   it('works with CDATA tags', () => {
 
     var roundTrip = (html, expected) => {
-      var result = parseHTML(html, {cdata: true});
+      var result = parseHTML(html, {cdata: true})[0];
       assert.ok(undefined !== result, 'result is undefined');
       assert.ok(!(result instanceof Error), result.message);
       if (undefined !== expected) {
@@ -186,7 +199,7 @@ describe('parseHTML', () => {
   it('works with IE-specific pseudo-tags', () => {
 
     var roundTrip = (html, expected) => {
-      var result = parseHTML(html, {ieTags: true});
+      var result = parseHTML(html, {ieTags: true})[0];
       assert.ok(undefined !== result, 'result is undefined');
       assert.ok(!(result instanceof Error), result.message);
       if (undefined !== expected) {
@@ -211,7 +224,7 @@ describe('parseHTML', () => {
   it('works with XML declarations', () => {
 
     var roundTrip = (html, expected, strict) => {
-      var result = parseHTML(html, {xmlDeclarations: true, strict: strict});
+      var result = parseHTML(html, {xmlDeclarations: true, strict: strict})[0];
       assert.ok(undefined !== result, 'result is undefined');
       assert.ok(!(result instanceof Error), result.message);
       if (undefined !== expected) {
@@ -237,7 +250,7 @@ describe('parseHTML', () => {
   it('works with tricky/broken html snippets', () => {
 
     var roundTrip = (html, expected) => {
-      var result = parseHTML(html, {strict: false});
+      var result = parseHTML(html, {strict: false})[0];
       assert.ok(undefined !== result, 'result is undefined');
       assert.ok(!(result instanceof Error), result.message);
       if (undefined !== expected) {
