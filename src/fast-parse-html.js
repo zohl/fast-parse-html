@@ -62,39 +62,6 @@
 // // 123    '{'.charCodeAt(0)
 // // 125    '}'.charCodeAt(0)
 
-// const CODE_A_LC = 'a'.charCodeAt(0);
-// const CODE_Z_LC = 'z'.charCodeAt(0);
-// const CODE_A_UC = 'A'.charCodeAt(0);
-// const CODE_Z_UC = 'Z'.charCodeAt(0);
-// const CODE_LT = '<'.charCodeAt(0);
-// const CODE_GT = '>'.charCodeAt(0);
-// const CODE_SPACE = ' '.charCodeAt(0);
-// const CODE_HYPHEN = '-'.charCodeAt(0);
-// const CODE_QUOT = '"'.charCodeAt(0);
-// const CODE_APOS = "'".charCodeAt(0);
-// const CODE_SLASH = '/'.charCodeAt(0);
-// const CODE_BACKSLASH = '\\'.charCodeAt(0);
-// const CODE_ASTERISK = '*'.charCodeAt(0);
-// const CODE_NEWLINE = '\n'.charCodeAt(0);
-// const CODE_CR = '\r'.charCodeAt(0);
-// const CODE_TAB = '\t'.charCodeAt(0);
-// const CODE_COLON = ':'.charCodeAt(0);
-// const CODE_0 = '0'.charCodeAt(0);
-// const CODE_9 = '9'.charCodeAt(0);
-// const CODE_BANG = '!'.charCodeAt(0);
-// const CODE_EQUAL = '='.charCodeAt(0);
-// const CODE_LEFT_BRACKET = '['.charCodeAt(0);
-// const CODE_RIGHT_BRACKET = ']'.charCodeAt(0);
-// const CODE_QUESTION = '?'.charCodeAt(0);
-// const CODE_LEFT_PARENTHESIS = '('.charCodeAt(0);
-// const CODE_COMMA = ','.charCodeAt(0);
-// const CODE_SEMICOLON = ';'.charCodeAt(0);
-// const CODE_AMP = '&'.charCodeAt(0);
-// const CODE_PIPE = '|'.charCodeAt(0);
-// const CODE_LEFT_CURLY_BRACKET = '{'.charCodeAt(0);
-// const CODE_RIGHT_CURLY_BRACKET = '}'.charCodeAt(0);
-
-
 
 #define CURRENT_CHAR (s.charCodeAt(pos))
 #define HAS_INPUT (pos < len)
@@ -134,6 +101,7 @@
 
 #define COMMENT_ENDING '-->'
 
+
 /** Parse given HTML text using event-based approach.
 
    @arg {Object} $0 - callbacks.
@@ -145,6 +113,20 @@
    successfully parsed.
 
    @arg {Function} $0.onText - called for each text element being parsed.
+
+   @arg {Object} userOptions - options to alter way of parsing the HTML text.
+
+   @arg {bool} [userOptions.strict = true] - stop parsing when detected a
+   several error in the text.
+
+   @arg {bool} [userOptions.cdata = false] - allow CDATA tags in the text.
+   Otherwise they will be parsed like a text.
+
+   @arg {bool} [userOptions.ieTags = false] - allow IE-spacific tags in the text.
+
+   @arg {bool} [userOptions.xmlDeclarations = false] - allow XML declarations in the text.
+
+   @arg {string} s - HTML text to parse.
 
    @return {(void|Error)}
 */
@@ -662,12 +644,18 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
 
 /** Parse given HTML text into ready-to-consume structure.
 
-   @arg {string} s - HTML text.
+   @arg {string} s - HTML text to parse.
 
-   @return {Object}
+   @arg {Object} userOptions - options to alter way of parsing the HTML string.
+   See {@link genericParseHTML} for additional options.
+
+   @arg {bool} [userOptions.allowMismatchedTags = false] - Ignore mismatched tags.
+
+   @arg {bool} [userOptions.ignoreTopLevelText = false] - Do not include
+   top-level text nodes into result.
+
+   @return {(Object|Error)}
 */
-
-
 const parseHTML = (s, options) => {
 
   const allowMismatchedTags = (undefined !== options && options.allowMismatchedTags);
