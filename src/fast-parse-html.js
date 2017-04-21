@@ -102,6 +102,12 @@
 #define COMMENT_ENDING '-->'
 
 
+const getParam = (options, name, def) =>
+  (undefined !== options && name in options)
+  ? options[name]
+  : def;
+
+
 /** Parse given HTML text using event-based approach.
 
    @arg {Object} $0 - callbacks.
@@ -114,29 +120,29 @@
 
    @arg {Function} $0.onText - called for each text element being parsed.
 
-   @arg {Object} userOptions - options to alter way of parsing the HTML text.
+   @arg {Object} options - options to alter way of parsing the HTML text.
 
-   @arg {bool} [userOptions.strict = true] - stop parsing when detected a
-   several error in the text.
+	 @arg {bool} [options.allowSyntaxErrors = false] - tolerate syntax errors.
 
-   @arg {bool} [userOptions.cdata = false] - allow CDATA tags in the text.
-   Otherwise they will be parsed like a text.
+	 @arg {bool} [options.allowCData = false] - tolerate CDATA tags in the text.
 
-   @arg {bool} [userOptions.ieTags = false] - allow IE-spacific tags in the text.
+	 @arg {bool} [options.allowIETags = false] - tolerate IE-spacific tags in the
+   text.
 
-   @arg {bool} [userOptions.xmlDeclarations = false] - allow XML declarations in the text.
+	 @arg {bool} [options.allowXMLDeclarations = false] - tolerate XML
+   declarations in the text.
 
    @arg {string} s - HTML text to parse.
 
    @return {(void|Error)}
 */
-const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => {
+const genericParseHTML = ({onOpenTag, onCloseTag, onText}, options) => s => {
   const len = s.length;
-  const options = userOptions || {};
-  const strict = (undefined !== options.strict) ? options.strict : true;
-  const cdata = (undefined !== options.cdata) ? options.cdata: false;
-  const ieTags = (undefined !== options.ieTags) ? options.ieTags: false;
-  const xmlDeclarations = (undefined !== options.xmlDeclarations) ? options.xmlDeclarations: false;
+
+  const allowSyntaxErrors    = getParam(options, "allowSyntaxErrors"   , false);
+  const allowCData           = getParam(options, "allowCData"          , false);
+  const allowIETags          = getParam(options, "allowIETags"         , false);
+  const allowXMLDeclarations = getParam(options, "allowXMLDeclarations", false);
 
   var pos = 0;
 
@@ -206,10 +212,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
         SKIP_WHILE(IS_SPACE(CURRENT_CHAR));
       }
       else {
-        if (strict) {
-          break;
-        }
-        else {
+        if (allowSyntaxErrors) {
           if ((CODE_SLASH == s.charCodeAt(pos) && CODE_GT == s.charCodeAt(pos + 1))
            || (CODE_GT == s.charCodeAt(pos))) {
             break;
@@ -217,6 +220,9 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
           else {
             NEXT_CHAR;
           }
+        }
+        else {
+          break;
         }
       }
     }
@@ -226,7 +232,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
 
   const readOpenTag = (tagName) => {
 
-    if (undefined === tagName && !strict) {
+    if (undefined === tagName && allowSyntaxErrors) {
       SKIP_WHILE(IS_SPACE(CURRENT_CHAR));
     }
 
@@ -247,7 +253,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
 
     var props;
 
-    if (ieTags && CODE_BANG == name.charCodeAt(0)) {
+    if (allowIETags && CODE_BANG == name.charCodeAt(0)) {
       SKIP_WHILE(IS_SPACE(CURRENT_CHAR));
       SELECT_WHILE(0, CODE_RIGHT_BRACKET != CURRENT_CHAR);
       props = {
@@ -278,7 +284,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
 
   const readCloseTag = (tagName) => {
 
-    if (undefined === tagName && !strict) {
+    if (undefined === tagName && allowSyntaxErrors) {
       SKIP_WHILE(IS_SPACE(CURRENT_CHAR));
     }
 
@@ -293,14 +299,14 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
       name += GET_SELECTION;
     }
 
-    var checkEnding = (ieTags && CODE_BANG == name.charCodeAt(0))
+    var checkEnding = (allowIETags && CODE_BANG == name.charCodeAt(0))
       ? () => tryString(']>')
       : () => TRY_CHAR(CODE_GT);
 
     SKIP_WHILE(IS_SPACE(CURRENT_CHAR));
 
     while (HAS_INPUT && !checkEnding()) {
-      if (strict) {
+      if (!allowSyntaxErrors) {
         return setError('readCloseTag', 'unexpected end of the tag');
       }
       NEXT_CHAR;
@@ -540,7 +546,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
 
 
   const readXMLDeclaration = () => {
-    if (!strict) {
+    if (allowSyntaxErrors) {
       SKIP_WHILE(IS_SPACE(CURRENT_CHAR));
     }
 
@@ -550,7 +556,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
 
     var props = readProps();
 
-    if (!((strict && tryString('?>')) || tryString('>'))) {
+    if (!((!allowSyntaxErrors && tryString('?>')) || tryString('>'))) {
       return setError('readXMLDeclaration', 'unexpected end of the declaration');
     }
 
@@ -573,17 +579,17 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
 
     prevPos = pos;
 
-    if (!strict) {
+    if (allowSyntaxErrors) {
       if (TRY_CHAR(CODE_GT)) {
         // do nothing
       }
     }
 
     if (TRY_CHAR(CODE_LT)) {
-      if (!strict && CODE_LT == s.charCodeAt(pos)) {
+      if (allowSyntaxErrors && CODE_LT == s.charCodeAt(pos)) {
         // do nothing
       }
-      else if (xmlDeclarations && TRY_CHAR(CODE_QUESTION)) {
+      else if (allowXMLDeclarations && TRY_CHAR(CODE_QUESTION)) {
         readXMLDeclaration();
       }
       else if (TRY_CHAR(CODE_SLASH)) {
@@ -600,10 +606,10 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
           onCloseTag('!--');
         }
         else if (TRY_CHAR(CODE_LEFT_BRACKET)) {
-          if (cdata && tryString('CDATA[')) {
+          if (allowCData && tryString('CDATA[')) {
             readCDATA();
           }
-          else if (ieTags) {
+          else if (allowIETags) {
             if (tryString('if')) {
               readOpenTag('!if');
             }
@@ -612,7 +618,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
             }
           }
         }
-        else if (!strict && READ_CHAR(IS_SPACE(CURRENT_CHAR))) {
+        else if (allowSyntaxErrors && READ_CHAR(IS_SPACE(CURRENT_CHAR))) {
           // do nothing
         }
         else {
@@ -646,20 +652,20 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, userOptions) => s => 
 
    @arg {string} s - HTML text to parse.
 
-   @arg {Object} userOptions - options to alter way of parsing the HTML string.
+   @arg {Object} options - options to alter way of parsing the HTML string.
    See {@link genericParseHTML} for additional options.
 
-   @arg {bool} [userOptions.allowMismatchedTags = false] - Ignore mismatched tags.
+   @arg {bool} [options.allowMismatchedTags = false] - Ignore mismatched tags.
 
-   @arg {bool} [userOptions.ignoreTopLevelText = false] - Do not include
-   top-level text nodes into result.
+	 @arg {bool} [options.ignoreTopLevelText = false] - Do not include top-level
+   text nodes into result.
 
    @return {(Object|Error)}
 */
 const parseHTML = (s, options) => {
 
-  const allowMismatchedTags = (undefined !== options && options.allowMismatchedTags);
-  const ignoreTopLevelText = (undefined !== options && options.ignoreTopLevelText);
+  const allowMismatchedTags = getParam(options, "allowMismatchedTags", false);
+  const ignoreTopLevelText  = getParam(options, "ignoreTopLevelText" , false);
 
   var result = [];
   var stack = [];

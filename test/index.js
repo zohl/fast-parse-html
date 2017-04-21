@@ -176,7 +176,7 @@ describe('parseHTML', () => {
   it('works with CDATA tags', () => {
 
     var roundTrip = (html, expected) => {
-      var result = parseHTML(html, {cdata: true})[0];
+      var result = parseHTML(html, {allowCData: true})[0];
       assert.ok(undefined !== result, 'result is undefined');
       assert.ok(!(result instanceof Error), result.message);
       if (undefined !== expected) {
@@ -199,7 +199,7 @@ describe('parseHTML', () => {
   it('works with IE-specific pseudo-tags', () => {
 
     var roundTrip = (html, expected) => {
-      var result = parseHTML(html, {ieTags: true})[0];
+      var result = parseHTML(html, {allowIETags: true})[0];
       assert.ok(undefined !== result, 'result is undefined');
       assert.ok(!(result instanceof Error), result.message);
       if (undefined !== expected) {
@@ -224,7 +224,7 @@ describe('parseHTML', () => {
   it('works with XML declarations', () => {
 
     var roundTrip = (html, expected, strict) => {
-      var result = parseHTML(html, {xmlDeclarations: true, strict: strict})[0];
+      var result = parseHTML(html, {allowXMLDeclarations: true, allowSyntaxErrors: !strict})[0];
       assert.ok(undefined !== result, 'result is undefined');
       assert.ok(!(result instanceof Error), result.message);
       if (undefined !== expected) {
@@ -250,7 +250,7 @@ describe('parseHTML', () => {
   it('works with tricky/broken html snippets', () => {
 
     var roundTrip = (html, expected) => {
-      var result = parseHTML(html, {strict: false})[0];
+      var result = parseHTML(html, {allowSyntaxErrors: true})[0];
       assert.ok(undefined !== result, 'result is undefined');
       assert.ok(!(result instanceof Error), result.message);
       if (undefined !== expected) {

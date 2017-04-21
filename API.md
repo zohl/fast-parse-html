@@ -17,13 +17,13 @@ Parse given HTML text using event-based approach.
     -   `$0.onCloseTag` **[Function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function)** called for each close tag being
         successfully parsed.
     -   `$0.onText` **[Function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function)** called for each text element being parsed.
--   `userOptions` **[Object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)** options to alter way of parsing the HTML text.
-    -   `userOptions.strict` **bool?** stop parsing when detected a
-        several error in the text. (optional, default `true`)
-    -   `userOptions.cdata` **bool?** allow CDATA tags in the text.
-        Otherwise they will be parsed like a text. (optional, default `false`)
-    -   `userOptions.ieTags` **bool?** allow IE-spacific tags in the text. (optional, default `false`)
-    -   `userOptions.xmlDeclarations` **bool?** allow XML declarations in the text. (optional, default `false`)
+-   `options` **[Object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)** options to alter way of parsing the HTML text.
+    -   `options.allowSyntaxErrors` **bool?** tolerate syntax errors. (optional, default `false`)
+    -   `options.allowCData` **bool?** tolerate CDATA tags in the text. (optional, default `false`)
+    -   `options.allowIETags` **bool?** tolerate IE-spacific tags in the
+        text. (optional, default `false`)
+    -   `options.allowXMLDeclarations` **bool?** tolerate XML
+        declarations in the text. (optional, default `false`)
 -   `s` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** HTML text to parse.
 
 Returns **(void | [Error](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error))** 
@@ -35,11 +35,10 @@ Parse given HTML text into ready-to-consume structure.
 **Parameters**
 
 -   `s` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** HTML text to parse.
--   `userOptions` **[Object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)** options to alter way of parsing the HTML string.
+-   `options` **[Object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)** options to alter way of parsing the HTML string.
     See [genericParseHTML](#genericparsehtml) for additional options.
-    -   `userOptions.allowMismatchedTags` **bool?** Ignore mismatched tags. (optional, default `false`)
-    -   `userOptions.ignoreTopLevelText` **bool?** Do not include
-        top-level text nodes into result. (optional, default `false`)
--   `options`  
+    -   `options.allowMismatchedTags` **bool?** Ignore mismatched tags. (optional, default `false`)
+    -   `options.ignoreTopLevelText` **bool?** Do not include top-level
+        text nodes into result. (optional, default `false`)
 
 Returns **([Object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object) \| [Error](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error))** 
