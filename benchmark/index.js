@@ -1,11 +1,17 @@
 var benchmark = require('htmlparser-benchmark');
-var parseHTML = require('../lib/index.js').parseHTML;
+var parseHTML = require('../lib/fast-parse-html.min.js').parseHTML;
 
 const target = process.argv[2];
 const penalty = 1000;
 
 var bench = benchmark(function(html, callback) {
-  var result = parseHTML(html, {strict: false, ieTags: true, cdata: true, xmlDeclarations: true});
+  var result = parseHTML(html, {
+    allowMismatchedTags: true
+	, allowSyntaxErrors: true
+	, allowCData: true
+	, allowIETags: true
+	, allowXMLDeclarations: true
+  });
   var failed = (result instanceof Error);
 
   if (target == '--completeness') {
