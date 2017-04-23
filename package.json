@@ -1,6 +1,6 @@
 {
   "name": "fast-parse-html",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "description": "Lightweight platform-independent forgiving html parser",
   "main": "lib/index.js",
   "scripts": {

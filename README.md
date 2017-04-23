@@ -22,3 +22,4 @@ var result = parseHTML('<div><p>foo</p><p>bar</p></div>');
 
 ## See also
 - [[Documentation](./API.md)]
+- [[Changelog](./CHANGELOG.md)]
