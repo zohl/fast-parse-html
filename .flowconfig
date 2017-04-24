@@ -1,0 +1,10 @@
+[ignore]
+<PROJECT_ROOT>/benchmark/.*
+<PROJECT_ROOT>/lib/.*
+<PROJECT_ROOT>/src/.*
+
+[include]
+
+[libs]
+
+[options]

@@ -1,3 +1,5 @@
+// @flow
+
 #define CODE_A_LC                97
 #define CODE_Z_LC                122
 #define CODE_A_UC                65
@@ -102,47 +104,95 @@
 #define COMMENT_ENDING '-->'
 
 
+const coalesce = <T>(x: ?T, y:T):T => (null == x) ? y : x;
+
 const getParam = (options, name, def) =>
   (undefined !== options && name in options)
   ? options[name]
   : def;
 
 
+/**
+   @name OnOpenTagHandler
+   @function
+
+   @arg {string} name
+   @arg {Object} props
+   @return {void}
+ */
+type OnOpenTagHandler = (name: string, props: {[id:string]:string}) => void;
+
+
+/**
+   @name OnCloseTagHandler
+   @function
+
+   @arg {string} name
+   @return {void}
+ */
+type OnCloseTagHandler = (name: string) => void;
+
+
+/**
+   @name OnTextHandler
+   @function
+
+   @arg {string} text
+   @return {void}
+ */
+type OnTextHandler = (text: string) => void;
+
+
+/**
+   Handlers for {@link genericParseHTML} function.
+   @name GenericParseHTMLHandlers
+
+   @prop {OnOpenTagHandler} onOpenTag - called for each open tag being successfully parsed.
+   @prop {OnCloseTagHandler} onCloseTag - called for each close tag being successfully parsed.
+   @prop {OnTextHandler} onText - called for each text element being parsed.
+ */
+interface GenericParseHTMLHandlers {
+    onOpenTag:  OnOpenTagHandler
+  , onCloseTag: OnCloseTagHandler
+  , onText:     OnTextHandler
+  }
+
+
+/**
+   Options for {@link genericParseHTML} function.
+   @name GenericParseHTMLOptions
+
+   @prop {bool} allowSyntaxErrors - tolerate syntax errors.
+   @prop {bool} allowCData - tolerate CDATA tags in the text.
+   @prop {bool} allowIETags - tolerate IE-spacific tags in the text.
+   @prop {bool} allowXMLDeclarations - tolerate XML.
+ */
+interface GenericParseHTMLOptions {
+    allowSyntaxErrors?:    bool
+  , allowCData?:           bool
+  , allowIETags?:          bool
+  , allowXMLDeclarations?: bool
+  }
+
+type HTMLParser = (s: string) => (void|Error);
+
 /** Parse given HTML text using event-based approach.
-
-   @arg {Object} $0 - callbacks.
-
-   @arg {Function} $0.onOpenTag - called for each open tag being
-   successfully parsed.
-
-   @arg {Function} $0.onCloseTag - called for each close tag being
-   successfully parsed.
-
-   @arg {Function} $0.onText - called for each text element being parsed.
-
-   @arg {Object} options - options to alter way of parsing the HTML text.
-
-	 @arg {bool} [options.allowSyntaxErrors = false] - tolerate syntax errors.
-
-	 @arg {bool} [options.allowCData = false] - tolerate CDATA tags in the text.
-
-	 @arg {bool} [options.allowIETags = false] - tolerate IE-spacific tags in the
-   text.
-
-	 @arg {bool} [options.allowXMLDeclarations = false] - tolerate XML
-   declarations in the text.
-
-   @arg {string} s - HTML text to parse.
 
    @return {(void|Error)}
 */
-const genericParseHTML = ({onOpenTag, onCloseTag, onText}, options) => s => {
-  const len = s.length;
+const genericParseHTML = (
+    handlers: GenericParseHTMLHandlers
+  , options?: GenericParseHTMLOptions
+  ):HTMLParser => (s:string) => {
 
-  const allowSyntaxErrors    = getParam(options, "allowSyntaxErrors"   , false);
-  const allowCData           = getParam(options, "allowCData"          , false);
-  const allowIETags          = getParam(options, "allowIETags"         , false);
-  const allowXMLDeclarations = getParam(options, "allowXMLDeclarations", false);
+  const len = s.length;
+  const {onOpenTag, onCloseTag, onText} = handlers;
+
+  const opt = (null != options) ? options : {};
+  const allowSyntaxErrors    = coalesce(opt.allowSyntaxErrors,    false);
+  const allowCData           = coalesce(opt.allowCData,           false);
+  const allowIETags          = coalesce(opt.allowIETags,          false);
+  const allowXMLDeclarations = coalesce(opt.allowXMLDeclarations, false);
 
   var pos = 0;
 
@@ -154,7 +204,8 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, options) => s => {
   const getPosition = p => {
     var s1 = s.substring(0, p);
     var line = 1 + (s1.match(/\n/g) || []).length;
-    var s2 = s1.match(/[^\n]*$/)[0] || '';
+    var m = s1.match(/[^\n]*$/);
+    var s2 = (null != m) ? m[0] : '';
     var column = s2.length;
     return '(' + line + ', ' + column + ')';
   };
@@ -175,7 +226,7 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, options) => s => {
   };
 
 
-  const readProps = () => {
+  const readProps = ():({[id:string]: string}|void) => {
     var result = {};
 
     while (HAS_INPUT) {
@@ -268,17 +319,19 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, options) => s => {
       props = readProps();
     }
 
-    SKIP_WHILE(IS_SPACE(CURRENT_CHAR));
+    if (null != props) {
+      SKIP_WHILE(IS_SPACE(CURRENT_CHAR));
 
-    if (TRY_CHAR(CODE_GT)) {
-      onOpenTag(name, props);
-    }
-    else if (tryString('/>')) {
-      onOpenTag(name, props);
-      onCloseTag(name);
-    }
-    else {
-      return setError('readOpenTag', 'unexpected end of the tag');
+      if (TRY_CHAR(CODE_GT)) {
+        onOpenTag(name, props);
+      }
+      else if (tryString('/>')) {
+        onOpenTag(name, props);
+        onCloseTag(name);
+      }
+      else {
+        return setError('readOpenTag', 'unexpected end of the tag');
+      }
     }
   };
 
@@ -556,12 +609,14 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, options) => s => {
 
     var props = readProps();
 
-    if (!((!allowSyntaxErrors && tryString('?>')) || tryString('>'))) {
-      return setError('readXMLDeclaration', 'unexpected end of the declaration');
-    }
+    if (null != props) {
+      if (!((!allowSyntaxErrors && tryString('?>')) || tryString('>'))) {
+        return setError('readXMLDeclaration', 'unexpected end of the declaration');
+      }
 
-    onOpenTag('?xml', props);
-    onCloseTag('?xml');
+      onOpenTag('?xml', props);
+      onCloseTag('?xml');
+    }
   };
 
 
@@ -648,24 +703,30 @@ const genericParseHTML = ({onOpenTag, onCloseTag, onText}, options) => s => {
 }
 
 
+/**
+   Options for {@link parseHTML} function.
+   @name ParseHTMLOptions
+
+   @prop {bool} allowMismatchedTags - Ignore mismatched tags.
+   @prop {bool} ignoreTopLevelText - Do not include top-level text nodes into result.
+ */
+interface ParseHTMLOptions extends GenericParseHTMLOptions {
+    allowMismatchedTags?: bool
+  , ignoreTopLevelText?:  bool
+  }
+
 /** Parse given HTML text into ready-to-consume structure.
+   See also {@link genericParseHTML} for additional options.
 
    @arg {string} s - HTML text to parse.
-
-   @arg {Object} options - options to alter way of parsing the HTML string.
-   See {@link genericParseHTML} for additional options.
-
-   @arg {bool} [options.allowMismatchedTags = false] - Ignore mismatched tags.
-
-	 @arg {bool} [options.ignoreTopLevelText = false] - Do not include top-level
-   text nodes into result.
-
    @return {(Object|Error)}
 */
-const parseHTML = (s, options) => {
+const parseHTML = (s: string, options?: ParseHTMLOptions) => {
 
-  const allowMismatchedTags = getParam(options, "allowMismatchedTags", false);
-  const ignoreTopLevelText  = getParam(options, "ignoreTopLevelText" , false);
+  const opt = (null != options) ? options : {};
+
+  const allowMismatchedTags = coalesce(opt.allowMismatchedTags, false);
+  const ignoreTopLevelText  = coalesce(opt.ignoreTopLevelText, false);
 
   var result = [];
   var stack = [];
@@ -737,3 +798,4 @@ const parseHTML = (s, options) => {
 };
 
 export {genericParseHTML, parseHTML}
+
