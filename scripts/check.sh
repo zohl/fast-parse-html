@@ -1,5 +1,6 @@
 #!/bin/sh
 source ./scripts/constants.sh
 
-flow check
+flow check \
+&& eslint "$BUILD_DIR/"*
 

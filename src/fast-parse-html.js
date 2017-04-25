@@ -77,7 +77,7 @@
 
 
 #define SKIP_WHILE(_E) while ((HAS_INPUT) && _E) NEXT_CHAR
-#define SELECT_WHILE(_i,_E) START_SELECTION; SKIP_WHILE(_E); STOP_SELECTION;
+#define SELECT_WHILE(_i,_E) START_SELECTION; SKIP_WHILE(_E); STOP_SELECTION
 
 #define TRY_CHAR(_c) ((_c == CURRENT_CHAR) ? NEXT_CHAR : false)
 #define READ_CHAR(_E) (_E ? s.charAt(pos++) : '')
@@ -105,12 +105,6 @@
 
 
 const coalesce = <T>(x: ?T, y:T):T => (null == x) ? y : x;
-
-const getParam = (options, name, def) =>
-  (undefined !== options && name in options)
-  ? options[name]
-  : def;
-
 
 /**
    @name OnOpenTagHandler
@@ -152,10 +146,10 @@ type OnTextHandler = (text: string) => void;
    @prop {OnTextHandler} onText - called for each text element being parsed.
  */
 interface GenericParseHTMLHandlers {
-    onOpenTag:  OnOpenTagHandler
-  , onCloseTag: OnCloseTagHandler
-  , onText:     OnTextHandler
-  }
+  onOpenTag:  OnOpenTagHandler
+, onCloseTag: OnCloseTagHandler
+, onText:     OnTextHandler
+}
 
 
 /**
@@ -168,11 +162,11 @@ interface GenericParseHTMLHandlers {
    @prop {bool} allowXMLDeclarations - tolerate XML.
  */
 interface GenericParseHTMLOptions {
-    allowSyntaxErrors?:    bool
-  , allowCData?:           bool
-  , allowIETags?:          bool
-  , allowXMLDeclarations?: bool
-  }
+  allowSyntaxErrors?:    bool
+, allowCData?:           bool
+, allowIETags?:          bool
+, allowXMLDeclarations?: bool
+}
 
 type HTMLParser = (s: string) => (void|Error);
 
@@ -181,9 +175,9 @@ type HTMLParser = (s: string) => (void|Error);
    @return {(void|Error)}
 */
 const genericParseHTML = (
-    handlers: GenericParseHTMLHandlers
-  , options?: GenericParseHTMLOptions
-  ):HTMLParser => (s:string) => {
+  handlers: GenericParseHTMLHandlers
+, options?: GenericParseHTMLOptions
+):HTMLParser => (s:string) => {
 
   const len = s.length;
   const {onOpenTag, onCloseTag, onText} = handlers;
@@ -700,7 +694,7 @@ const genericParseHTML = (
   if (null !== error) {
     return error;
   }
-}
+};
 
 
 /**
@@ -797,5 +791,5 @@ const parseHTML = (s: string, options?: ParseHTMLOptions) => {
   return result;
 };
 
-export {genericParseHTML, parseHTML}
+export {genericParseHTML, parseHTML};
 
